@@ -1,0 +1,12 @@
+# NVIDIA driver logs
+NVIDIA Corporation/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# System
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
