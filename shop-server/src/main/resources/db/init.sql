@@ -46,7 +46,8 @@ CREATE TABLE category_zj (
     sort_zj INT(11) NOT NULL DEFAULT 0 COMMENT '排序',
     icon_zj VARCHAR(255) DEFAULT NULL COMMENT '图标URL',
     created_at_zj DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    PRIMARY KEY (id_zj)
+    PRIMARY KEY (id_zj),
+    KEY idx_category_parent (parent_id_zj)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品分类表';
 
 -- ----------------------------
