@@ -6,7 +6,22 @@ NVIDIA Corporation/
 .vscode/
 *.iml
 
-# System
+# Java
+*.class
+*.jar
+*.war
+target/
+*.log
+
+# Maven
+.mvn/
+mvnw*
+
+# OS
 Thumbs.db
 Desktop.ini
 $RECYCLE.BIN/
+
+# Upload files (keep dir structure, ignore actual files)
+uploads/*
+!uploads/.gitkeep
