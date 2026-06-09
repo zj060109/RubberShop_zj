@@ -2,6 +2,7 @@ package com.rubber.shop.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -25,11 +26,15 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/uploads/**").permitAll()
-                        .requestMatchers("/api/products", "/api/products/**").permitAll()
-                        .requestMatchers("/api/categories", "/api/categories/**").permitAll()
-                        .requestMatchers("/api/configs", "/api/configs/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/categories", "/api/categories/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/configs", "/api/configs/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("MERCHANT")
                         .requestMatchers("/api/factory/**").hasRole("FACTORY")
+                        .requestMatchers("/api/products/**").hasRole("MERCHANT")
+                        .requestMatchers("/api/categories/**").hasRole("MERCHANT")
+                        .requestMatchers("/api/configs/**").hasRole("MERCHANT")
+                        .requestMatchers(HttpMethod.POST, "/api/upload").authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
