@@ -5,7 +5,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/db_rubber_shop_zj_2024?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     username: root
-    password: 123456
+    password: 060109
   servlet:
     multipart:
       max-file-size: 20MB
