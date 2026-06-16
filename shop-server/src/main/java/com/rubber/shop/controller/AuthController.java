@@ -5,10 +5,12 @@ import com.rubber.shop.common.Result;
 import com.rubber.shop.config.JwtUtil;
 import com.rubber.shop.dto.LoginRequest;
 import com.rubber.shop.dto.LoginResponse;
+import com.rubber.shop.dto.PasswordUpdateRequest;
 import com.rubber.shop.dto.RegisterRequest;
 import com.rubber.shop.entity.User;
 import com.rubber.shop.service.UserService;
 import jakarta.validation.Valid;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -58,5 +60,20 @@ public class AuthController {
         String token = jwtUtil.generateToken(user.getId_zj(), user.getRole_zj());
         LoginResponse resp = new LoginResponse(token, user.getId_zj(), user.getRole_zj());
         return Result.success("注册成功", resp);
+    }
+
+    @PutMapping("/password")
+    public Result<?> changePassword(@RequestBody @Valid PasswordUpdateRequest req) {
+        Long userId = (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User user = userService.getById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        if (!passwordEncoder.matches(req.getOldPassword(), user.getPassword_zj())) {
+            throw new BusinessException("旧密码错误");
+        }
+        user.setPassword_zj(passwordEncoder.encode(req.getNewPassword()));
+        userService.updateById(user);
+        return Result.success("密码修改成功", null);
     }
 }
