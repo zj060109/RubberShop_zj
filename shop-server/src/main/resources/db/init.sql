@@ -298,7 +298,7 @@ VALUES ('13800000000', 'admin123', 'merchant', '系统管理员', 0.00, 0.00, 1,
 
 -- 预置厂家账号
 INSERT INTO user_zj (phone_zj, password_zj, role_zj, company_name_zj, status_zj, created_at_zj)
-VALUES ('13900000001', 'admin123', 'factory', '正佳橡胶厂', 1, NOW());
+VALUES ('13900000001', 'factory123', 'factory', '正佳橡胶厂', 1, NOW());
 
 -- 商品分类示例
 INSERT INTO category_zj (name_zj, parent_id_zj, sort_zj, created_at_zj) VALUES

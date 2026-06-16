@@ -55,6 +55,8 @@ public class AuthController {
         user.setCredit_limit_zj(java.math.BigDecimal.ZERO);
         user.setStatus_zj(1);
         userService.save(user);
-        return Result.success("注册成功", null);
+        String token = jwtUtil.generateToken(user.getId_zj(), user.getRole_zj());
+        LoginResponse resp = new LoginResponse(token, user.getId_zj(), user.getRole_zj());
+        return Result.success("注册成功", resp);
     }
 }
