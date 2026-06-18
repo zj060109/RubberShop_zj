@@ -1,6 +1,7 @@
 package com.rubber.shop.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.rubber.shop.common.BusinessException;
 import com.rubber.shop.common.Result;
@@ -74,14 +75,20 @@ public class UserController {
         if (req.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("充值金额必须大于0");
         }
-        User user = getCurrentUser();
-        user.setBalance_zj(user.getBalance_zj().add(req.getAmount()));
-        userService.updateById(user);
+        Long userId = getCurrentUserId();
+        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(User::getId_zj, userId)
+               .setSql("balance_zj = balance_zj + {0}", req.getAmount());
+        boolean success = userService.update(wrapper);
+        if (!success) {
+            throw new BusinessException("充值失败");
+        }
 
+        User updated = userService.getById(userId);
         BalanceLog log = new BalanceLog();
-        log.setUser_id_zj(user.getId_zj());
+        log.setUser_id_zj(userId);
         log.setChange_amount_zj(req.getAmount());
-        log.setCurrent_balance_zj(user.getBalance_zj());
+        log.setCurrent_balance_zj(updated.getBalance_zj());
         log.setType_zj("recharge");
         log.setRemark_zj("余额充值");
         log.setCreated_at_zj(LocalDateTime.now());

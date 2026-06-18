@@ -9,6 +9,7 @@ import com.rubber.shop.common.Result;
 import com.rubber.shop.dto.ProductRequest;
 import com.rubber.shop.entity.Product;
 import com.rubber.shop.service.ProductService;
+import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -62,7 +63,7 @@ public class ProductController {
     }
 
     @PostMapping
-    public Result<?> create(@RequestBody ProductRequest req) {
+    public Result<?> create(@RequestBody @Valid ProductRequest req) {
         Product product = new Product();
         product.setCategory_id_zj(req.getCategoryId());
         product.setName_zj(req.getName());

@@ -11,6 +11,7 @@ import com.rubber.shop.entity.BalanceLog;
 import com.rubber.shop.entity.User;
 import com.rubber.shop.service.BalanceLogService;
 import com.rubber.shop.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -63,7 +64,7 @@ public class AdminUserController {
 
     @PutMapping("/{id}")
     @Transactional
-    public Result<?> update(@PathVariable Long id, @RequestBody AdminUserUpdateRequest req) {
+    public Result<?> update(@PathVariable Long id, @RequestBody @Valid AdminUserUpdateRequest req) {
         User user = userService.getById(id);
         if (user == null) {
             throw new BusinessException("用户不存在");
@@ -74,7 +75,7 @@ public class AdminUserController {
 
         if (req.getBalance() != null && req.getBalance().compareTo(BigDecimal.ZERO) != 0) {
             BigDecimal amount = req.getBalance();
-            wrapper.setSql("balance_zj = balance_zj + " + amount);
+            wrapper.setSql("balance_zj = balance_zj + {0}", amount);
             if (amount.compareTo(BigDecimal.ZERO) < 0) {
                 wrapper.ge(User::getBalance_zj, amount.abs());
             }
