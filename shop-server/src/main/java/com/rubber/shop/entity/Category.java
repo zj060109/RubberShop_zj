@@ -19,7 +19,7 @@ public class Category {
     private String name_zj;
 
     @TableField("parent_id_zj")
-    private Long parent_id_zj;
+    private Long parent_id_zj = 0L;
 
     @TableField("sort_zj")
     private Integer sort_zj;
