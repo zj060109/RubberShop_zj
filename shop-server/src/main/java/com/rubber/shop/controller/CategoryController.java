@@ -48,10 +48,10 @@ public class CategoryController {
     @PostMapping
     public Result<?> add(@RequestBody @Valid CategoryRequest req) {
         Category category = new Category();
-        category.setName_zj(req.getName_zj());
-        category.setParent_id_zj(req.getParent_id_zj() != null ? req.getParent_id_zj() : 0L);
-        category.setSort_zj(req.getSort_zj() != null ? req.getSort_zj() : 0);
-        category.setIcon_zj(req.getIcon_zj());
+        category.setName_zj(req.getName());
+        category.setParent_id_zj(req.getParentId() != null ? req.getParentId() : 0L);
+        category.setSort_zj(req.getSort() != null ? req.getSort() : 0);
+        category.setIcon_zj(req.getIcon());
         categoryService.save(category);
         return Result.success("分类添加成功", null);
     }
@@ -62,10 +62,10 @@ public class CategoryController {
         if (exist == null) {
             throw new BusinessException("分类不存在");
         }
-        exist.setName_zj(req.getName_zj());
-        if (req.getParent_id_zj() != null) exist.setParent_id_zj(req.getParent_id_zj());
-        if (req.getSort_zj() != null) exist.setSort_zj(req.getSort_zj());
-        if (req.getIcon_zj() != null) exist.setIcon_zj(req.getIcon_zj());
+        exist.setName_zj(req.getName());
+        if (req.getParentId() != null) exist.setParent_id_zj(req.getParentId());
+        if (req.getSort() != null) exist.setSort_zj(req.getSort());
+        if (req.getIcon() != null) exist.setIcon_zj(req.getIcon());
         categoryService.updateById(exist);
         return Result.success("分类修改成功", null);
     }

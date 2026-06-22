@@ -7,9 +7,9 @@ import lombok.Data;
 public class CategoryRequest {
 
     @NotBlank(message = "分类名称不能为空")
-    private String name_zj;
+    private String name;
 
-    private Long parent_id_zj;
-    private Integer sort_zj;
-    private String icon_zj;
+    private Long parentId;
+    private Integer sort;
+    private String icon;
 }
