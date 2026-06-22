@@ -8,11 +8,15 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api")
 public class UploadController {
+
+    private static final Set<String> ALLOWED_EXTENSIONS = Set.of(".jpg", ".jpeg", ".png", ".gif", ".webp");
+    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
 
     @Value("${upload.path}")
     private String uploadPath;
@@ -22,11 +26,17 @@ public class UploadController {
         if (file.isEmpty()) {
             throw new BusinessException("上传文件不能为空");
         }
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new BusinessException("文件大小不能超过5MB");
+        }
 
         String originalName = file.getOriginalFilename();
         String extension = "";
         if (originalName != null && originalName.contains(".")) {
-            extension = originalName.substring(originalName.lastIndexOf("."));
+            extension = originalName.substring(originalName.lastIndexOf(".")).toLowerCase();
+        }
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+            throw new BusinessException("不支持的文件类型，仅允许 jpg/png/gif/webp");
         }
 
         String fileName = UUID.randomUUID().toString() + extension;

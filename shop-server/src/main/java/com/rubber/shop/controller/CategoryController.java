@@ -3,11 +3,13 @@ package com.rubber.shop.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.rubber.shop.common.BusinessException;
 import com.rubber.shop.common.Result;
+import com.rubber.shop.dto.CategoryRequest;
 import com.rubber.shop.dto.CategoryTreeResponse;
 import com.rubber.shop.entity.Category;
 import com.rubber.shop.entity.Product;
 import com.rubber.shop.service.CategoryService;
 import com.rubber.shop.service.ProductService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -44,24 +46,35 @@ public class CategoryController {
     }
 
     @PostMapping
-    public Result<?> add(@RequestBody Category category) {
+    public Result<?> add(@RequestBody @Valid CategoryRequest req) {
+        Category category = new Category();
+        category.setName_zj(req.getName_zj());
+        category.setParent_id_zj(req.getParent_id_zj() != null ? req.getParent_id_zj() : 0L);
+        category.setSort_zj(req.getSort_zj() != null ? req.getSort_zj() : 0);
+        category.setIcon_zj(req.getIcon_zj());
         categoryService.save(category);
         return Result.success("分类添加成功", null);
     }
 
     @PutMapping("/{id}")
-    public Result<?> update(@PathVariable Long id, @RequestBody Category category) {
+    public Result<?> update(@PathVariable Long id, @RequestBody @Valid CategoryRequest req) {
         Category exist = categoryService.getById(id);
         if (exist == null) {
             throw new BusinessException("分类不存在");
         }
-        category.setId_zj(id);
-        categoryService.updateById(category);
+        exist.setName_zj(req.getName_zj());
+        if (req.getParent_id_zj() != null) exist.setParent_id_zj(req.getParent_id_zj());
+        if (req.getSort_zj() != null) exist.setSort_zj(req.getSort_zj());
+        if (req.getIcon_zj() != null) exist.setIcon_zj(req.getIcon_zj());
+        categoryService.updateById(exist);
         return Result.success("分类修改成功", null);
     }
 
     @DeleteMapping("/{id}")
     public Result<?> delete(@PathVariable Long id) {
+        if (categoryService.getById(id) == null) {
+            throw new BusinessException("分类不存在");
+        }
         LambdaQueryWrapper<Category> childWrapper = new LambdaQueryWrapper<>();
         childWrapper.eq(Category::getParent_id_zj, id);
         if (categoryService.count(childWrapper) > 0) {

@@ -95,14 +95,18 @@ public class AdminUserController {
             user = updated;
         }
 
-        if (req.getCreditLimit() != null) {
-            user.setCredit_limit_zj(req.getCreditLimit());
+        if (req.getCreditLimit() != null || req.getStatus() != null) {
+            LambdaUpdateWrapper<User> fieldWrapper = new LambdaUpdateWrapper<>();
+            fieldWrapper.eq(User::getId_zj, id);
+            if (req.getCreditLimit() != null) {
+                fieldWrapper.set(User::getCredit_limit_zj, req.getCreditLimit());
+            }
+            if (req.getStatus() != null) {
+                fieldWrapper.set(User::getStatus_zj, req.getStatus());
+            }
+            fieldWrapper.set(User::getUpdated_at_zj, LocalDateTime.now());
+            userService.update(fieldWrapper);
         }
-        if (req.getStatus() != null) {
-            user.setStatus_zj(req.getStatus());
-        }
-        user.setUpdated_at_zj(LocalDateTime.now());
-        userService.updateById(user);
 
         return Result.success("修改成功", null);
     }
