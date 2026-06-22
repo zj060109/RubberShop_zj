@@ -70,23 +70,7 @@ public class OrderController {
             Product product = productService.getById(itemReq.getProductId());
             if (product == null) throw new BusinessException("商品不存在");
             if (!"on".equals(product.getStatus_zj())) throw new BusinessException("商品[" + product.getName_zj() + "]已下架");
-
-            LambdaUpdateWrapper<Product> wrapper = new LambdaUpdateWrapper<>();
-            wrapper.eq(Product::getId_zj, product.getId_zj())
-                   .ge(Product::getStock_zj, itemReq.getQuantity())
-                   .setSql("stock_zj = stock_zj - {0}", itemReq.getQuantity());
-            boolean success = productService.update(wrapper);
-            if (!success) throw new BusinessException("商品[" + product.getName_zj() + "]库存不足");
-
-            Product updated = productService.getById(product.getId_zj());
-            StockLog sl = new StockLog();
-            sl.setProduct_id_zj(product.getId_zj());
-            sl.setChange_quantity_zj(-itemReq.getQuantity());
-            sl.setCurrent_stock_zj(updated.getStock_zj());
-            sl.setType_zj("sale_out");
-            sl.setRemark_zj("订单销售出库");
-            sl.setCreated_at_zj(LocalDateTime.now());
-            stockLogService.save(sl);
+            if (product.getStock_zj() < itemReq.getQuantity()) throw new BusinessException("商品[" + product.getName_zj() + "]库存不足");
 
             BigDecimal subtotal = product.getPrice_zj().multiply(new BigDecimal(itemReq.getQuantity()));
             totalAmount = totalAmount.add(subtotal);
@@ -110,10 +94,27 @@ public class OrderController {
         order.setStatus_zj("paid");
         order.setPaid_at_zj(LocalDateTime.now());
         order.setCreated_at_zj(LocalDateTime.now());
-
         setAddress(order, user, req);
-
         orderService.save(order);
+
+        for (OrderItemRequest itemReq : req.getItems()) {
+            LambdaUpdateWrapper<Product> wrapper = new LambdaUpdateWrapper<>();
+            wrapper.eq(Product::getId_zj, itemReq.getProductId())
+                   .ge(Product::getStock_zj, itemReq.getQuantity())
+                   .setSql("stock_zj = stock_zj - {0}", itemReq.getQuantity());
+            productService.update(wrapper);
+
+            Product updated = productService.getById(itemReq.getProductId());
+            StockLog sl = new StockLog();
+            sl.setProduct_id_zj(itemReq.getProductId());
+            sl.setChange_quantity_zj(-itemReq.getQuantity());
+            sl.setCurrent_stock_zj(updated.getStock_zj());
+            sl.setType_zj("sale_out");
+            sl.setReference_id_zj(order.getId_zj());
+            sl.setRemark_zj("订单销售出库");
+            sl.setCreated_at_zj(LocalDateTime.now());
+            stockLogService.save(sl);
+        }
 
         for (OrderItem oi : orderItems) {
             oi.setOrder_id_zj(order.getId_zj());
@@ -199,6 +200,181 @@ public class OrderController {
         List<OrderStatusLog> logs = orderStatusLogService.list(logWrapper);
 
         return Result.success(new OrderDetailResponse(order, items, logs));
+    }
+
+    @PutMapping("/{id}/status")
+    @Transactional
+    public Result<?> updateStatus(@PathVariable Long id, @RequestParam String status) {
+        if (!isAdmin()) throw new BusinessException("权限不足");
+        Order order = orderService.getById(id);
+        if (order == null) throw new BusinessException("订单不存在");
+
+        String oldStatus = order.getStatus_zj();
+        boolean valid = false;
+
+        if ("accepted".equals(status) && "paid".equals(oldStatus)) valid = true;
+        if ("shipped".equals(status) && ("paid".equals(oldStatus) || "accepted".equals(oldStatus))) valid = true;
+
+        if (!valid) throw new BusinessException("当前状态不允许此操作");
+
+        order.setStatus_zj(status);
+        if ("shipped".equals(status)) order.setShipped_at_zj(LocalDateTime.now());
+        order.setUpdated_at_zj(LocalDateTime.now());
+        orderService.updateById(order);
+
+        OrderStatusLog log = new OrderStatusLog();
+        log.setOrder_id_zj(id);
+        log.setFrom_status_zj(oldStatus);
+        log.setTo_status_zj(status);
+        log.setOperator_id_zj(getCurrentUserId());
+        log.setCreated_at_zj(LocalDateTime.now());
+        orderStatusLogService.save(log);
+
+        return Result.success("操作成功", null);
+    }
+
+    @PutMapping("/{id}/ship")
+    @Transactional
+    public Result<?> ship(@PathVariable Long id, @RequestParam String expressCompany, @RequestParam String trackingNo) {
+        if (!isAdmin()) throw new BusinessException("权限不足");
+        Order order = orderService.getById(id);
+        if (order == null) throw new BusinessException("订单不存在");
+
+        String oldStatus = order.getStatus_zj();
+        if (!"paid".equals(oldStatus) && !"accepted".equals(oldStatus)) {
+            throw new BusinessException("当前状态不允许发货");
+        }
+
+        order.setStatus_zj("shipped");
+        order.setExpress_company_zj(expressCompany);
+        order.setTracking_no_zj(trackingNo);
+        order.setShipped_at_zj(LocalDateTime.now());
+        order.setUpdated_at_zj(LocalDateTime.now());
+        orderService.updateById(order);
+
+        OrderStatusLog log = new OrderStatusLog();
+        log.setOrder_id_zj(id);
+        log.setFrom_status_zj(oldStatus);
+        log.setTo_status_zj("shipped");
+        log.setOperator_id_zj(getCurrentUserId());
+        log.setRemark_zj("物流：" + expressCompany + " " + trackingNo);
+        log.setCreated_at_zj(LocalDateTime.now());
+        orderStatusLogService.save(log);
+
+        return Result.success("发货成功", null);
+    }
+
+    @PutMapping("/{id}/receive")
+    @Transactional
+    public Result<?> receive(@PathVariable Long id) {
+        Order order = orderService.getById(id);
+        if (order == null) throw new BusinessException("订单不存在");
+
+        if (!"shipped".equals(order.getStatus_zj())) {
+            throw new BusinessException("当前状态不允许确认收货");
+        }
+
+        String oldStatus = order.getStatus_zj();
+        order.setStatus_zj("completed");
+        order.setFinished_at_zj(LocalDateTime.now());
+        order.setUpdated_at_zj(LocalDateTime.now());
+        orderService.updateById(order);
+
+        OrderStatusLog log = new OrderStatusLog();
+        log.setOrder_id_zj(id);
+        log.setFrom_status_zj(oldStatus);
+        log.setTo_status_zj("completed");
+        log.setOperator_id_zj(getCurrentUserId());
+        log.setCreated_at_zj(LocalDateTime.now());
+        orderStatusLogService.save(log);
+
+        return Result.success("确认收货成功", null);
+    }
+
+    @PostMapping("/{id}/cancel")
+    @Transactional
+    public Result<?> cancel(@PathVariable Long id) {
+        Order order = orderService.getById(id);
+        if (order == null) throw new BusinessException("订单不存在");
+
+        String status = order.getStatus_zj();
+        if (!"paid".equals(status) && !"accepted".equals(status)) {
+            throw new BusinessException("当前订单状态不允许取消");
+        }
+
+        Long userId = getCurrentUserId();
+        if (!isAdmin() && !order.getUser_id_zj().equals(userId)) {
+            throw new BusinessException("无权取消该订单");
+        }
+
+        if ("balance".equals(order.getPayment_method_zj())) {
+            LambdaUpdateWrapper<User> uw = new LambdaUpdateWrapper<>();
+            uw.eq(User::getId_zj, order.getUser_id_zj())
+              .setSql("balance_zj = balance_zj + {0}", order.getActual_amount_zj());
+            userService.update(uw);
+
+            User refreshed = userService.getById(order.getUser_id_zj());
+            BalanceLog bl = new BalanceLog();
+            bl.setUser_id_zj(order.getUser_id_zj());
+            bl.setChange_amount_zj(order.getActual_amount_zj());
+            bl.setCurrent_balance_zj(refreshed.getBalance_zj());
+            bl.setType_zj("refund");
+            bl.setReference_id_zj(id);
+            bl.setRemark_zj("订单退款");
+            bl.setCreated_at_zj(LocalDateTime.now());
+            balanceLogService.save(bl);
+        } else {
+            LambdaQueryWrapper<Receivable> rw = new LambdaQueryWrapper<>();
+            rw.eq(Receivable::getOrder_id_zj, id);
+            Receivable receivable = receivableService.getOne(rw);
+            if (receivable != null) {
+                if (receivable.getAmount_paid_zj().compareTo(BigDecimal.ZERO) > 0) {
+                    LambdaUpdateWrapper<User> uw = new LambdaUpdateWrapper<>();
+                    uw.eq(User::getId_zj, order.getUser_id_zj())
+                      .setSql("balance_zj = balance_zj + {0}", receivable.getAmount_paid_zj());
+                    userService.update(uw);
+                }
+                receivable.setStatus_zj("void");
+                receivable.setUpdated_at_zj(LocalDateTime.now());
+                receivableService.updateById(receivable);
+            }
+        }
+
+        LambdaQueryWrapper<OrderItem> iw = new LambdaQueryWrapper<>();
+        iw.eq(OrderItem::getOrder_id_zj, id);
+        List<OrderItem> items = orderItemService.list(iw);
+        for (OrderItem item : items) {
+            LambdaUpdateWrapper<Product> pw = new LambdaUpdateWrapper<>();
+            pw.eq(Product::getId_zj, item.getProduct_id_zj())
+              .setSql("stock_zj = stock_zj + {0}", item.getQuantity_zj());
+            productService.update(pw);
+
+            Product updated = productService.getById(item.getProduct_id_zj());
+            StockLog sl = new StockLog();
+            sl.setProduct_id_zj(item.getProduct_id_zj());
+            sl.setChange_quantity_zj(item.getQuantity_zj());
+            sl.setCurrent_stock_zj(updated.getStock_zj());
+            sl.setType_zj("refund_in");
+            sl.setReference_id_zj(id);
+            sl.setRemark_zj("订单退款入库");
+            sl.setCreated_at_zj(LocalDateTime.now());
+            stockLogService.save(sl);
+        }
+
+        String oldStatus = order.getStatus_zj();
+        order.setStatus_zj("refunded");
+        order.setUpdated_at_zj(LocalDateTime.now());
+        orderService.updateById(order);
+
+        OrderStatusLog log = new OrderStatusLog();
+        log.setOrder_id_zj(id);
+        log.setFrom_status_zj(oldStatus);
+        log.setTo_status_zj("refunded");
+        log.setOperator_id_zj(getCurrentUserId());
+        log.setCreated_at_zj(LocalDateTime.now());
+        orderStatusLogService.save(log);
+
+        return Result.success("取消成功，已退款", null);
     }
 
     private void setAddress(Order order, User user, OrderCreateRequest req) {
