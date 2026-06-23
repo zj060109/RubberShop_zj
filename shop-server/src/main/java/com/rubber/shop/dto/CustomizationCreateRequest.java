@@ -1,6 +1,5 @@
 package com.rubber.shop.dto;
 
-import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
 
 import java.util.List;

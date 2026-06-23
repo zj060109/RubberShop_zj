@@ -290,19 +290,6 @@ public class OrderController {
         order.setUpdated_at_zj(LocalDateTime.now());
         orderService.updateById(order);
 
-        if ("credit".equals(order.getPayment_method_zj())) {
-            LambdaQueryWrapper<Receivable> rw = new LambdaQueryWrapper<>();
-            rw.eq(Receivable::getOrder_id_zj, id);
-            Receivable receivable = receivableService.getOne(rw);
-            if (receivable != null && ("unpaid".equals(receivable.getStatus_zj())
-                    || "partially_paid".equals(receivable.getStatus_zj()))) {
-                receivable.setStatus_zj("paid");
-                receivable.setAmount_paid_zj(receivable.getAmount_owed_zj());
-                receivable.setUpdated_at_zj(LocalDateTime.now());
-                receivableService.updateById(receivable);
-            }
-        }
-
         OrderStatusLog log = new OrderStatusLog();
         log.setOrder_id_zj(id);
         log.setFrom_status_zj(oldStatus);
@@ -363,6 +350,17 @@ public class OrderController {
                     uw.eq(User::getId_zj, order.getUser_id_zj())
                       .setSql("balance_zj = balance_zj + {0}", receivable.getAmount_paid_zj());
                     userService.update(uw);
+
+                    User refundedUser = userService.getById(order.getUser_id_zj());
+                    BalanceLog bl2 = new BalanceLog();
+                    bl2.setUser_id_zj(order.getUser_id_zj());
+                    bl2.setChange_amount_zj(receivable.getAmount_paid_zj());
+                    bl2.setCurrent_balance_zj(refundedUser.getBalance_zj());
+                    bl2.setType_zj("refund");
+                    bl2.setReference_id_zj(id);
+                    bl2.setRemark_zj("赊账订单退款-已还金额退回");
+                    bl2.setCreated_at_zj(LocalDateTime.now());
+                    balanceLogService.save(bl2);
                 }
                 receivable.setStatus_zj("void");
                 receivable.setUpdated_at_zj(LocalDateTime.now());

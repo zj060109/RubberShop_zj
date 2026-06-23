@@ -58,9 +58,6 @@ public class Order {
     @TableField("tracking_no_zj")
     private String tracking_no_zj;
 
-    @TableField("mark_zj")
-    private String mark_zj;
-
     @TableField("paid_at_zj")
     private LocalDateTime paid_at_zj;
 

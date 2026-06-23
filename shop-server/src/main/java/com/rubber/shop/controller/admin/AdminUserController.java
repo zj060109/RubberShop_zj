@@ -92,7 +92,6 @@ public class AdminUserController {
             log.setRemark_zj("管理员调额");
             log.setCreated_at_zj(LocalDateTime.now());
             balanceLogService.save(log);
-            user = updated;
         }
 
         if (req.getCreditLimit() != null || req.getStatus() != null) {

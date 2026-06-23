@@ -34,9 +34,6 @@ public class User {
     @TableField("balance_zj")
     private BigDecimal balance_zj;
 
-    @TableField("points_zj")
-    private Integer points_zj;
-
     @TableField("credit_limit_zj")
     private BigDecimal credit_limit_zj;
 

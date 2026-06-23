@@ -44,8 +44,8 @@ public class ProductController {
             wrapper.eq(Product::getCategory_id_zj, categoryId);
         }
 
-        boolean isAdmin = isAdminOrFactory();
-        if (!isAdmin) {
+        boolean isMerchant = isAdmin();
+        if (!isMerchant) {
             wrapper.eq(Product::getStatus_zj, "on");
         }
 
@@ -59,7 +59,7 @@ public class ProductController {
         if (product == null) {
             throw new BusinessException("商品不存在");
         }
-        if (!isAdminOrFactory() && !"on".equals(product.getStatus_zj())) {
+        if (!isAdmin() && !"on".equals(product.getStatus_zj())) {
             throw new BusinessException("商品已下架");
         }
         return Result.success(product);
@@ -150,7 +150,7 @@ public class ProductController {
         return Result.success("商品删除成功", null);
     }
 
-    private boolean isAdminOrFactory() {
+    private boolean isAdmin() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
             return false;
