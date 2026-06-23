@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -30,6 +31,9 @@ public class Receivable {
 
     @TableField("status_zj")
     private String status_zj;
+
+    @TableField("due_date_zj")
+    private LocalDate due_date_zj;
 
     @TableField("created_at_zj")
     private LocalDateTime created_at_zj;

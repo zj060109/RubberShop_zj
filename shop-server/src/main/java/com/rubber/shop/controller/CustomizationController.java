@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -245,15 +244,23 @@ public class CustomizationController {
 
     private void setAddress(Order order) {
         User user = userService.getById(getCurrentUserId());
-        String addr = user.getDefault_detail_address_zj();
-        if (user.getDefault_receiver_name_zj() == null || user.getDefault_receiver_phone_zj() == null || addr == null)
-            throw new BusinessException("请先完善收货地址");
-        order.setReceiver_name_zj(user.getDefault_receiver_name_zj());
-        order.setReceiver_phone_zj(user.getDefault_receiver_phone_zj());
-        order.setProvince_zj(user.getDefault_province_zj());
-        order.setCity_zj(user.getDefault_city_zj());
-        order.setDistrict_zj(user.getDefault_district_zj());
-        order.setDetail_address_zj(addr);
+        String name = user.getDefault_receiver_name_zj();
+        String phone = user.getDefault_receiver_phone_zj();
+        String province = user.getDefault_province_zj();
+        String city = user.getDefault_city_zj();
+        String district = user.getDefault_district_zj();
+        String detail = user.getDefault_detail_address_zj();
+        if (name == null || name.isEmpty() || phone == null || phone.isEmpty()
+                || province == null || province.isEmpty() || city == null || city.isEmpty()
+                || district == null || district.isEmpty() || detail == null || detail.isEmpty()) {
+            throw new BusinessException("请先完善收货地址（省市区+详细地址）");
+        }
+        order.setReceiver_name_zj(name);
+        order.setReceiver_phone_zj(phone);
+        order.setProvince_zj(province);
+        order.setCity_zj(city);
+        order.setDistrict_zj(district);
+        order.setDetail_address_zj(detail);
     }
 
     private boolean isAdmin() {
