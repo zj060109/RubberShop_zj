@@ -151,8 +151,8 @@ public class PurchaseController {
         Long userId = getCurrentUserId();
         boolean valid = false;
 
-        if ("confirmed".equals(status) && "pending".equals(old) && p.getFactory_id_zj().equals(userId)) valid = true;
-        if ("shipped".equals(status) && "confirmed".equals(old) && p.getFactory_id_zj().equals(userId)) valid = true;
+        if ("confirmed".equals(status) && "pending".equals(old) && (isMerchant() || p.getFactory_id_zj().equals(userId))) valid = true;
+        if ("shipped".equals(status) && "confirmed".equals(old) && (isMerchant() || p.getFactory_id_zj().equals(userId))) valid = true;
         if ("cancelled".equals(status) && ("pending".equals(old) || "confirmed".equals(old)) && isMerchant()) valid = true;
 
         if (!valid) throw new BusinessException("不允许此操作");

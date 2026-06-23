@@ -218,9 +218,8 @@ public class OrderController {
         boolean valid = false;
 
         if ("accepted".equals(status) && "paid".equals(oldStatus)) valid = true;
-        if ("shipped".equals(status) && ("paid".equals(oldStatus) || "accepted".equals(oldStatus))) valid = true;
 
-        if (!valid) throw new BusinessException("当前状态不允许此操作");
+        if (!valid) throw new BusinessException("当前状态不允许此操作，请使用 /ship 端点进行发货操作");
 
         order.setStatus_zj(status);
         if ("shipped".equals(status)) order.setShipped_at_zj(LocalDateTime.now());

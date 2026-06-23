@@ -126,6 +126,7 @@ public class CustomizationController {
                 new LambdaQueryWrapper<CustomizationItem>().eq(CustomizationItem::getCustomization_id_zj, id));
 
         Product p = new Product();
+        p.setCategory_id_zj(0L);
         p.setName_zj("定制商品_" + id);
         p.setStatus_zj("off");
         p.setIs_customized_zj(1);

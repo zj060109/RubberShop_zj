@@ -72,7 +72,8 @@ public class ReceivableController {
         Long userId = getCurrentUserId();
         boolean isMerchantUser = isAdmin();
 
-        if ("balance".equals(pm) && !isMerchantUser) {
+        if ("balance".equals(pm)) {
+            if (isMerchantUser) throw new BusinessException("商家不能使用余额还款，请使用现金或转账方式");
             LambdaUpdateWrapper<User> uw = new LambdaUpdateWrapper<>();
             uw.eq(User::getId_zj, userId)
               .ge(User::getBalance_zj, req.getAmount())

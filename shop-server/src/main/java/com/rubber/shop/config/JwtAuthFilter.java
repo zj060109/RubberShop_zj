@@ -37,12 +37,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String role = jwtUtil.getRoleFromToken(token);
             if (role != null) {
                 User user = userService.getById(userId);
-                if (user == null || user.getStatus_zj() == 0) return;
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userId, null,
-                                Collections.singletonList(
-                                        new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                if (user == null || user.getStatus_zj() == 0) {
+                    // user disabled or deleted: do not set authentication, let request fall through
+                } else {
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(userId, null,
+                                    Collections.singletonList(
+                                            new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             }
         }
 
