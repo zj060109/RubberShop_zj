@@ -39,8 +39,8 @@ public class StatisticsController {
 
         LocalDateTime today = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
         LambdaQueryWrapper<Order> tw = new LambdaQueryWrapper<>();
-        tw.ge(Order::getCreated_at_zj, today).eq(Order::getStatus_zj, "completed");
-        int todayOrders = (int) orderService.count(tw);
+        tw.ge(Order::getCreated_at_zj, today);
+        long todayOrders = orderService.count(tw);
 
         List<Product> allOnProducts = productService.list(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Product>()
                 .eq(Product::getStatus_zj, "on"));

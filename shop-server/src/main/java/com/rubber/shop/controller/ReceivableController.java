@@ -17,7 +17,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/receivables")
@@ -45,12 +47,20 @@ public class ReceivableController {
     }
 
     @GetMapping("/{id}")
-    public Result<Receivable> detail(@PathVariable Long id) {
+    public Result<Map<String, Object>> detail(@PathVariable Long id) {
         Receivable r = receivableService.getById(id);
         if (r == null) throw new BusinessException("应收记录不存在");
         if (!isAdmin() && !r.getUser_id_zj().equals(getCurrentUserId()))
             throw new BusinessException("无权查看");
-        return Result.success(r);
+
+        LambdaQueryWrapper<Receipt> rw = new LambdaQueryWrapper<>();
+        rw.eq(Receipt::getReceivable_id_zj, id).orderByDesc(Receipt::getCreated_at_zj);
+        List<Receipt> receipts = receiptService.list(rw);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("receivable", r);
+        result.put("receipts", receipts);
+        return Result.success(result);
     }
 
     @PostMapping("/{id}/receipts")
@@ -90,7 +100,9 @@ public class ReceivableController {
             bl.setRemark_zj("赊账还款");
             bl.setCreated_at_zj(LocalDateTime.now());
             balanceLogService.save(bl);
-        } else if (!"cash".equals(pm) && !"bank_transfer".equals(pm) && !"balance".equals(pm)) {
+        } else if (!isMerchantUser) {
+            throw new BusinessException("顾客仅支持余额还款，商家可登记线下收款");
+        } else if (!"cash".equals(pm) && !"bank_transfer".equals(pm)) {
             throw new BusinessException("还款方式无效");
         }
 
