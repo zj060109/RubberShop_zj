@@ -56,6 +56,8 @@ public class AuthController {
         user.setBalance_zj(java.math.BigDecimal.ZERO);
         user.setCredit_limit_zj(java.math.BigDecimal.ZERO);
         user.setStatus_zj(1);
+        user.setCreated_at_zj(java.time.LocalDateTime.now());
+        user.setUpdated_at_zj(java.time.LocalDateTime.now());
         userService.save(user);
         String token = jwtUtil.generateToken(user.getId_zj(), user.getRole_zj());
         LoginResponse resp = new LoginResponse(token, user.getId_zj(), user.getRole_zj());

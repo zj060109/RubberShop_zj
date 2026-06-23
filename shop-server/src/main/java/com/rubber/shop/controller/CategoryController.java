@@ -63,7 +63,13 @@ public class CategoryController {
             throw new BusinessException("分类不存在");
         }
         exist.setName_zj(req.getName());
-        if (req.getParentId() != null) exist.setParent_id_zj(req.getParentId());
+        if (req.getParentId() != null) {
+            if (req.getParentId().equals(id)) throw new BusinessException("不能将自己设为父分类");
+            List<Long> descendantIds = new ArrayList<>();
+            collectDescendantIds(id, descendantIds);
+            if (descendantIds.contains(req.getParentId())) throw new BusinessException("不能将分类移到自己的子分类下");
+            exist.setParent_id_zj(req.getParentId());
+        }
         if (req.getSort() != null) exist.setSort_zj(req.getSort());
         if (req.getIcon() != null) exist.setIcon_zj(req.getIcon());
         categoryService.updateById(exist);

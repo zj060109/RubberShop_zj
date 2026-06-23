@@ -59,6 +59,9 @@ public class ProductController {
         if (product == null) {
             throw new BusinessException("商品不存在");
         }
+        if (!isAdminOrFactory() && !"on".equals(product.getStatus_zj())) {
+            throw new BusinessException("商品已下架");
+        }
         return Result.success(product);
     }
 
@@ -154,7 +157,7 @@ public class ProductController {
         }
         for (GrantedAuthority authority : auth.getAuthorities()) {
             String role = authority.getAuthority();
-            if ("ROLE_MERCHANT".equals(role) || "ROLE_FACTORY".equals(role)) {
+            if ("ROLE_MERCHANT".equals(role)) {
                 return true;
             }
         }

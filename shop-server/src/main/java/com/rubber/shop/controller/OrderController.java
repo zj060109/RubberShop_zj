@@ -290,6 +290,19 @@ public class OrderController {
         order.setUpdated_at_zj(LocalDateTime.now());
         orderService.updateById(order);
 
+        if ("credit".equals(order.getPayment_method_zj())) {
+            LambdaQueryWrapper<Receivable> rw = new LambdaQueryWrapper<>();
+            rw.eq(Receivable::getOrder_id_zj, id);
+            Receivable receivable = receivableService.getOne(rw);
+            if (receivable != null && ("unpaid".equals(receivable.getStatus_zj())
+                    || "partially_paid".equals(receivable.getStatus_zj()))) {
+                receivable.setStatus_zj("paid");
+                receivable.setAmount_paid_zj(receivable.getAmount_owed_zj());
+                receivable.setUpdated_at_zj(LocalDateTime.now());
+                receivableService.updateById(receivable);
+            }
+        }
+
         OrderStatusLog log = new OrderStatusLog();
         log.setOrder_id_zj(id);
         log.setFrom_status_zj(oldStatus);
@@ -316,6 +329,13 @@ public class OrderController {
         if (!isAdmin() && !order.getUser_id_zj().equals(userId)) {
             throw new BusinessException("无权取消该订单");
         }
+
+        LambdaUpdateWrapper<Order> ow = new LambdaUpdateWrapper<>();
+        ow.eq(Order::getId_zj, id)
+          .eq(Order::getStatus_zj, status)
+          .set(Order::getStatus_zj, "refunded")
+          .set(Order::getUpdated_at_zj, LocalDateTime.now());
+        if (!orderService.update(ow)) throw new BusinessException("订单状态已变更，无法取消");
 
         if ("balance".equals(order.getPayment_method_zj())) {
             LambdaUpdateWrapper<User> uw = new LambdaUpdateWrapper<>();
@@ -371,18 +391,9 @@ public class OrderController {
             stockLogService.save(sl);
         }
 
-        String oldStatus = order.getStatus_zj();
-
-        LambdaUpdateWrapper<Order> ow = new LambdaUpdateWrapper<>();
-        ow.eq(Order::getId_zj, id)
-          .in(Order::getStatus_zj, "paid", "accepted")
-          .set(Order::getStatus_zj, "refunded")
-          .set(Order::getUpdated_at_zj, LocalDateTime.now());
-        if (!orderService.update(ow)) throw new BusinessException("订单状态已变更，无法取消");
-
         OrderStatusLog log = new OrderStatusLog();
         log.setOrder_id_zj(id);
-        log.setFrom_status_zj(oldStatus);
+        log.setFrom_status_zj(status);
         log.setTo_status_zj("refunded");
         log.setOperator_id_zj(getCurrentUserId());
         log.setCreated_at_zj(LocalDateTime.now());
@@ -399,8 +410,9 @@ public class OrderController {
         String district = req.getDistrict() != null ? req.getDistrict() : user.getDefault_district_zj();
         String detail = req.getDetailAddress() != null ? req.getDetailAddress() : user.getDefault_detail_address_zj();
 
-        if (name == null || phone == null || province == null || city == null
-                || district == null || detail == null) {
+        if (name == null || name.isEmpty() || phone == null || phone.isEmpty()
+                || province == null || province.isEmpty() || city == null || city.isEmpty()
+                || district == null || district.isEmpty() || detail == null || detail.isEmpty()) {
             throw new BusinessException("收货地址信息不完整，请先完善地址");
         }
 
@@ -434,7 +446,7 @@ public class OrderController {
         if (auth == null || !auth.isAuthenticated()) return false;
         for (GrantedAuthority a : auth.getAuthorities()) {
             String r = a.getAuthority();
-            if ("ROLE_MERCHANT".equals(r) || "ROLE_FACTORY".equals(r)) return true;
+            if ("ROLE_MERCHANT".equals(r)) return true;
         }
         return false;
     }
@@ -450,7 +462,7 @@ public class OrderController {
                     .constructCollectionType(java.util.List.class, String.class));
             return list.isEmpty() ? null : list.get(0);
         } catch (Exception e) {
-            return imagesJson;
+            return null;
         }
     }
 }
