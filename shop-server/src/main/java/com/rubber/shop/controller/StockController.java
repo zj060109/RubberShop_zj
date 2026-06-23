@@ -9,6 +9,7 @@ import com.rubber.shop.entity.Product;
 import com.rubber.shop.entity.StockLog;
 import com.rubber.shop.service.ProductService;
 import com.rubber.shop.service.StockLogService;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -39,6 +40,7 @@ public class StockController {
     }
 
     @PostMapping("/adjust")
+    @Transactional
     public Result<?> adjust(@RequestParam Long productId, @RequestParam int quantity, @RequestParam String type) {
         if (!"manual_in".equals(type) && !"manual_out".equals(type))
             throw new BusinessException("类型仅支持 manual_in 或 manual_out");

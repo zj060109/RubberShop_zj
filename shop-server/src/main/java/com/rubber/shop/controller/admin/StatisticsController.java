@@ -42,10 +42,14 @@ public class StatisticsController {
         tw.ge(Order::getCreated_at_zj, today).eq(Order::getStatus_zj, "completed");
         int todayOrders = (int) orderService.count(tw);
 
-        LambdaQueryWrapper<Product> pw = new LambdaQueryWrapper<>();
-        pw.eq(Product::getStatus_zj, "on")
-          .le(Product::getStock_zj, 10);
-        int warningCount = (int) productService.count(pw);
+        List<Product> allOnProducts = productService.list(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Product>()
+                .eq(Product::getStatus_zj, "on"));
+        int warningCount = 0;
+        for (Product p : allOnProducts) {
+            int threshold = p.getWarning_stock_zj() != null && p.getWarning_stock_zj() > 0 ? p.getWarning_stock_zj() : 10;
+            int stock = p.getStock_zj() != null ? p.getStock_zj() : 0;
+            if (stock <= threshold) warningCount++;
+        }
 
         data.put("totalSales", totalSales);
         data.put("totalOrders", totalOrders);

@@ -34,6 +34,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/products/**").hasRole("MERCHANT")
                         .requestMatchers("/api/categories/**").hasRole("MERCHANT")
                         .requestMatchers("/api/configs/**").hasRole("MERCHANT")
+                        .requestMatchers("/api/stock/**").hasRole("MERCHANT")
                         .requestMatchers(HttpMethod.POST, "/api/upload").authenticated()
                         .anyRequest().authenticated()
                 )

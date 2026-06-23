@@ -38,7 +38,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if (role != null) {
                 User user = userService.getById(userId);
                 if (user == null || user.getStatus_zj() == 0) {
-                    // user disabled or deleted: do not set authentication, let request fall through
+                    // user disabled or deleted: do not set authentication
+                } else if (!role.equals(user.getRole_zj())) {
+                    // role mismatch between token and DB: reject
                 } else {
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(userId, null,

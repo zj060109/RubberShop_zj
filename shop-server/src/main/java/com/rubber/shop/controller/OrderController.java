@@ -222,7 +222,6 @@ public class OrderController {
         if (!valid) throw new BusinessException("当前状态不允许此操作，请使用 /ship 端点进行发货操作");
 
         order.setStatus_zj(status);
-        if ("shipped".equals(status)) order.setShipped_at_zj(LocalDateTime.now());
         order.setUpdated_at_zj(LocalDateTime.now());
         orderService.updateById(order);
 
@@ -323,22 +322,28 @@ public class OrderController {
           .set(Order::getUpdated_at_zj, LocalDateTime.now());
         if (!orderService.update(ow)) throw new BusinessException("订单状态已变更，无法取消");
 
+        boolean refundFailed = false;
+
         if ("balance".equals(order.getPayment_method_zj())) {
             LambdaUpdateWrapper<User> uw = new LambdaUpdateWrapper<>();
             uw.eq(User::getId_zj, order.getUser_id_zj())
               .setSql("balance_zj = balance_zj + {0}", order.getActual_amount_zj());
-            userService.update(uw);
-
-            User refreshed = userService.getById(order.getUser_id_zj());
-            BalanceLog bl = new BalanceLog();
-            bl.setUser_id_zj(order.getUser_id_zj());
-            bl.setChange_amount_zj(order.getActual_amount_zj());
-            bl.setCurrent_balance_zj(refreshed.getBalance_zj());
-            bl.setType_zj("refund");
-            bl.setReference_id_zj(id);
-            bl.setRemark_zj("订单退款");
-            bl.setCreated_at_zj(LocalDateTime.now());
-            balanceLogService.save(bl);
+            if (!userService.update(uw)) refundFailed = true;
+            else {
+                User refreshed = userService.getById(order.getUser_id_zj());
+                if (refreshed == null) { refundFailed = true; }
+                else {
+                    BalanceLog bl = new BalanceLog();
+                    bl.setUser_id_zj(order.getUser_id_zj());
+                    bl.setChange_amount_zj(order.getActual_amount_zj());
+                    bl.setCurrent_balance_zj(refreshed.getBalance_zj());
+                    bl.setType_zj("refund");
+                    bl.setReference_id_zj(id);
+                    bl.setRemark_zj("订单退款");
+                    bl.setCreated_at_zj(LocalDateTime.now());
+                    balanceLogService.save(bl);
+                }
+            }
         } else {
             LambdaQueryWrapper<Receivable> rw = new LambdaQueryWrapper<>();
             rw.eq(Receivable::getOrder_id_zj, id);
@@ -351,7 +356,8 @@ public class OrderController {
                     userService.update(uw);
 
                     User refundedUser = userService.getById(order.getUser_id_zj());
-                    BalanceLog bl2 = new BalanceLog();
+                    if (refundedUser != null) {
+                        BalanceLog bl2 = new BalanceLog();
                     bl2.setUser_id_zj(order.getUser_id_zj());
                     bl2.setChange_amount_zj(receivable.getAmount_paid_zj());
                     bl2.setCurrent_balance_zj(refundedUser.getBalance_zj());
@@ -360,6 +366,7 @@ public class OrderController {
                     bl2.setRemark_zj("赊账订单退款-已还金额退回");
                     bl2.setCreated_at_zj(LocalDateTime.now());
                     balanceLogService.save(bl2);
+                    }
                 }
                 receivable.setStatus_zj("void");
                 receivable.setUpdated_at_zj(LocalDateTime.now());
@@ -387,6 +394,8 @@ public class OrderController {
             sl.setCreated_at_zj(LocalDateTime.now());
             stockLogService.save(sl);
         }
+
+        if (refundFailed) throw new BusinessException("退款处理异常，请联系管理员");
 
         OrderStatusLog log = new OrderStatusLog();
         log.setOrder_id_zj(id);

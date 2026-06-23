@@ -218,6 +218,7 @@ public class CustomizationController {
     }
 
     @PostMapping("/{id}/convert-to-product")
+    @Transactional
     public Result<?> convertToProduct(@PathVariable Long id, @RequestParam Long categoryId) {
         if (!isAdmin()) throw new BusinessException("权限不足");
         Customization c = customizationService.getById(id);

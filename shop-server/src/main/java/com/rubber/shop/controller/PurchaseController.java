@@ -167,6 +167,8 @@ public class PurchaseController {
     public Result<?> logistics(@PathVariable Long id, @RequestParam String expressCompany, @RequestParam String trackingNo) {
         Purchase p = purchaseService.getById(id);
         if (p == null) throw new BusinessException("采购单不存在");
+        if (!"confirmed".equals(p.getStatus_zj()) && !"shipped".equals(p.getStatus_zj()))
+            throw new BusinessException("当前状态不允许填写物流");
         if (!p.getFactory_id_zj().equals(getCurrentUserId())) throw new BusinessException("无权操作");
 
         p.setExpress_company_zj(expressCompany);
