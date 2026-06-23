@@ -31,12 +31,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(token) && jwtUtil.validateToken(token)) {
             Long userId = jwtUtil.getUserIdFromToken(token);
             String role = jwtUtil.getRoleFromToken(token);
-
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userId, null,
-                            Collections.singletonList(
-                                    new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+            if (role != null) {
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(userId, null,
+                                Collections.singletonList(
+                                        new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
         }
 
         filterChain.doFilter(request, response);

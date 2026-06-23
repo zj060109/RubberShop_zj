@@ -73,6 +73,7 @@ public class AuthController {
             throw new BusinessException("旧密码错误");
         }
         user.setPassword_zj(passwordEncoder.encode(req.getNewPassword()));
+        user.setUpdated_at_zj(java.time.LocalDateTime.now());
         userService.updateById(user);
         return Result.success("密码修改成功", null);
     }

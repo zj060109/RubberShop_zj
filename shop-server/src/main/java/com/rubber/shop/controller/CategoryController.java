@@ -75,10 +75,10 @@ public class CategoryController {
         if (categoryService.getById(id) == null) {
             throw new BusinessException("分类不存在");
         }
-        LambdaQueryWrapper<Category> childWrapper = new LambdaQueryWrapper<>();
-        childWrapper.eq(Category::getParent_id_zj, id);
-        if (categoryService.count(childWrapper) > 0) {
-            throw new BusinessException("存在子分类，无法删除");
+        List<Long> descendantIds = new ArrayList<>();
+        collectDescendantIds(id, descendantIds);
+        if (!descendantIds.isEmpty()) {
+            throw new BusinessException("该分类下存在子分类，无法删除");
         }
         LambdaQueryWrapper<Product> productWrapper = new LambdaQueryWrapper<>();
         productWrapper.eq(Product::getCategory_id_zj, id);
@@ -104,5 +104,15 @@ public class CategoryController {
             }
         }
         return node;
+    }
+
+    private void collectDescendantIds(Long parentId, List<Long> ids) {
+        LambdaQueryWrapper<Category> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Category::getParent_id_zj, parentId);
+        List<Category> children = categoryService.list(wrapper);
+        for (Category child : children) {
+            ids.add(child.getId_zj());
+            collectDescendantIds(child.getId_zj(), ids);
+        }
     }
 }

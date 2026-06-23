@@ -92,7 +92,10 @@ public class ProductController {
             throw new BusinessException("商品不存在");
         }
         if (req.getCategoryId() != null) product.setCategory_id_zj(req.getCategoryId());
-        if (req.getName() != null) product.setName_zj(req.getName());
+        if (req.getName() != null) {
+            if (req.getName().isEmpty()) throw new BusinessException("商品名称不能为空");
+            product.setName_zj(req.getName());
+        }
         if (req.getDescription() != null) product.setDescription_zj(req.getDescription());
         if (req.getImages() != null) {
             try {
@@ -101,9 +104,18 @@ public class ProductController {
                 throw new BusinessException("图片数据格式错误");
             }
         }
-        if (req.getPrice() != null) product.setPrice_zj(req.getPrice());
-        if (req.getStock() != null) product.setStock_zj(req.getStock());
-        if (req.getWarningStock() != null) product.setWarning_stock_zj(req.getWarningStock());
+        if (req.getPrice() != null) {
+            if (req.getPrice().compareTo(java.math.BigDecimal.ZERO) <= 0) throw new BusinessException("价格必须大于0");
+            product.setPrice_zj(req.getPrice());
+        }
+        if (req.getStock() != null) {
+            if (req.getStock() < 0) throw new BusinessException("库存不能为负数");
+            product.setStock_zj(req.getStock());
+        }
+        if (req.getWarningStock() != null) {
+            if (req.getWarningStock() < 0) throw new BusinessException("预警阈值不能为负数");
+            product.setWarning_stock_zj(req.getWarningStock());
+        }
         if (req.getFactoryId() != null) product.setFactory_id_zj(req.getFactoryId());
         product.setUpdated_at_zj(LocalDateTime.now());
         productService.updateById(product);

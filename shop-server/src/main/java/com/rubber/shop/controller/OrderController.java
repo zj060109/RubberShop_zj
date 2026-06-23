@@ -10,6 +10,7 @@ import com.rubber.shop.dto.OrderDetailResponse;
 import com.rubber.shop.dto.OrderItemRequest;
 import com.rubber.shop.entity.*;
 import com.rubber.shop.service.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -36,11 +37,13 @@ public class OrderController {
     private final BalanceLogService balanceLogService;
     private final StockLogService stockLogService;
     private final ReceivableService receivableService;
+    private final ObjectMapper objectMapper;
 
     public OrderController(OrderService orderService, OrderItemService orderItemService,
             OrderStatusLogService orderStatusLogService, ProductService productService,
             UserService userService, BalanceLogService balanceLogService,
-            StockLogService stockLogService, ReceivableService receivableService) {
+            StockLogService stockLogService, ReceivableService receivableService,
+            ObjectMapper objectMapper) {
         this.orderService = orderService;
         this.orderItemService = orderItemService;
         this.orderStatusLogService = orderStatusLogService;
@@ -49,6 +52,7 @@ public class OrderController {
         this.balanceLogService = balanceLogService;
         this.stockLogService = stockLogService;
         this.receivableService = receivableService;
+        this.objectMapper = objectMapper;
     }
 
     @PostMapping
@@ -78,7 +82,7 @@ public class OrderController {
             OrderItem oi = new OrderItem();
             oi.setProduct_id_zj(product.getId_zj());
             oi.setProduct_name_zj(product.getName_zj());
-            oi.setProduct_image_zj(product.getImages_zj());
+            oi.setProduct_image_zj(extractFirstImage(product.getImages_zj()));
             oi.setPrice_zj(product.getPrice_zj());
             oi.setQuantity_zj(itemReq.getQuantity());
             oi.setSubtotal_zj(subtotal);
@@ -101,8 +105,9 @@ public class OrderController {
             LambdaUpdateWrapper<Product> wrapper = new LambdaUpdateWrapper<>();
             wrapper.eq(Product::getId_zj, itemReq.getProductId())
                    .ge(Product::getStock_zj, itemReq.getQuantity())
-                   .setSql("stock_zj = stock_zj - {0}", itemReq.getQuantity());
-            productService.update(wrapper);
+                    .setSql("stock_zj = stock_zj - {0}", itemReq.getQuantity());
+            boolean stockSuccess = productService.update(wrapper);
+            if (!stockSuccess) throw new BusinessException("商品[" + itemReq.getProductId() + "]库存不足，下单失败");
 
             Product updated = productService.getById(itemReq.getProductId());
             StockLog sl = new StockLog();
@@ -270,6 +275,11 @@ public class OrderController {
         Order order = orderService.getById(id);
         if (order == null) throw new BusinessException("订单不存在");
 
+        Long userId = getCurrentUserId();
+        if (!isAdmin() && !order.getUser_id_zj().equals(userId)) {
+            throw new BusinessException("无权操作该订单");
+        }
+
         if (!"shipped".equals(order.getStatus_zj())) {
             throw new BusinessException("当前状态不允许确认收货");
         }
@@ -362,9 +372,13 @@ public class OrderController {
         }
 
         String oldStatus = order.getStatus_zj();
-        order.setStatus_zj("refunded");
-        order.setUpdated_at_zj(LocalDateTime.now());
-        orderService.updateById(order);
+
+        LambdaUpdateWrapper<Order> ow = new LambdaUpdateWrapper<>();
+        ow.eq(Order::getId_zj, id)
+          .in(Order::getStatus_zj, "paid", "accepted")
+          .set(Order::getStatus_zj, "refunded")
+          .set(Order::getUpdated_at_zj, LocalDateTime.now());
+        if (!orderService.update(ow)) throw new BusinessException("订单状态已变更，无法取消");
 
         OrderStatusLog log = new OrderStatusLog();
         log.setOrder_id_zj(id);
@@ -427,5 +441,16 @@ public class OrderController {
 
     private Long getCurrentUserId() {
         return (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+
+    private String extractFirstImage(String imagesJson) {
+        if (imagesJson == null || imagesJson.isEmpty()) return null;
+        try {
+            java.util.List<String> list = objectMapper.readValue(imagesJson, objectMapper.getTypeFactory()
+                    .constructCollectionType(java.util.List.class, String.class));
+            return list.isEmpty() ? null : list.get(0);
+        } catch (Exception e) {
+            return imagesJson;
+        }
     }
 }

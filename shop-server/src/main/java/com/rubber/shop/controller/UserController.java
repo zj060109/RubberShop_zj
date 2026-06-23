@@ -65,6 +65,7 @@ public class UserController {
         if (req.getDetailAddress() != null) {
             user.setDefault_detail_address_zj(req.getDetailAddress());
         }
+        user.setUpdated_at_zj(LocalDateTime.now());
         userService.updateById(user);
         return Result.success("修改成功", null);
     }
