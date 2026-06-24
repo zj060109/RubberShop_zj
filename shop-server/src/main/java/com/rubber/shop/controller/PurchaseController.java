@@ -8,6 +8,7 @@ import com.rubber.shop.common.Result;
 import com.rubber.shop.dto.PurchaseCreateRequest;
 import com.rubber.shop.dto.PurchaseDetailResponse;
 import com.rubber.shop.dto.PurchaseItemRequest;
+import com.rubber.shop.dto.UpdatePurchaseRequest;
 import com.rubber.shop.entity.*;
 import com.rubber.shop.service.*;
 import jakarta.validation.Valid;
@@ -111,7 +112,7 @@ public class PurchaseController {
 
     @PutMapping("/{id}")
     @Transactional
-    public Result<?> update(@PathVariable Long id, @RequestBody @Valid PurchaseCreateRequest req) {
+    public Result<?> update(@PathVariable Long id, @RequestBody @Valid UpdatePurchaseRequest req) {
         if (!isMerchant()) throw new BusinessException("权限不足");
         Purchase p = purchaseService.getById(id);
         if (p == null) throw new BusinessException("采购单不存在");
@@ -123,6 +124,8 @@ public class PurchaseController {
 
         BigDecimal total = BigDecimal.ZERO;
         for (PurchaseItemRequest ir : req.getItems()) {
+            if (ir.getQuantity() <= 0) throw new BusinessException("数量必须大于0");
+            if (ir.getUnitPrice().compareTo(BigDecimal.ZERO) <= 0) throw new BusinessException("单价必须大于0");
             BigDecimal subtotal = ir.getUnitPrice().multiply(new BigDecimal(ir.getQuantity()));
             total = total.add(subtotal);
             PurchaseItem pi = new PurchaseItem();
@@ -151,8 +154,8 @@ public class PurchaseController {
         Long userId = getCurrentUserId();
         boolean valid = false;
 
-        if ("confirmed".equals(status) && "pending".equals(old) && (isMerchant() || p.getFactory_id_zj().equals(userId))) valid = true;
-        if ("shipped".equals(status) && "confirmed".equals(old) && (isMerchant() || p.getFactory_id_zj().equals(userId))) valid = true;
+        if ("confirmed".equals(status) && "pending".equals(old) && p.getFactory_id_zj().equals(userId)) valid = true;
+        if ("shipped".equals(status) && "confirmed".equals(old) && p.getFactory_id_zj().equals(userId)) valid = true;
         if ("cancelled".equals(status) && ("pending".equals(old) || "confirmed".equals(old)) && isMerchant()) valid = true;
 
         if (!valid) throw new BusinessException("不允许此操作");
@@ -197,6 +200,7 @@ public class PurchaseController {
             productService.update(pw);
 
             Product updated = productService.getById(pi.getProduct_id_zj());
+            if (updated == null) throw new BusinessException("商品[" + pi.getProduct_name_zj() + "]已被删除，无法入库");
             StockLog sl = new StockLog();
             sl.setProduct_id_zj(pi.getProduct_id_zj());
             sl.setChange_quantity_zj(pi.getQuantity_zj());
@@ -208,9 +212,12 @@ public class PurchaseController {
             stockLogService.save(sl);
         }
 
-        p.setStatus_zj("received");
         p.setUpdated_at_zj(LocalDateTime.now());
-        purchaseService.updateById(p);
+        LambdaUpdateWrapper<Purchase> pw2 = new LambdaUpdateWrapper<>();
+        pw2.eq(Purchase::getId_zj, id).eq(Purchase::getStatus_zj, "shipped")
+           .set(Purchase::getStatus_zj, "received")
+           .set(Purchase::getUpdated_at_zj, LocalDateTime.now());
+        if (!purchaseService.update(pw2)) throw new BusinessException("收货失败，采购单状态已变更");
         return Result.success("收货入库成功", null);
     }
 

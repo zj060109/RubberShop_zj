@@ -353,11 +353,11 @@ public class OrderController {
                     LambdaUpdateWrapper<User> uw = new LambdaUpdateWrapper<>();
                     uw.eq(User::getId_zj, order.getUser_id_zj())
                       .setSql("balance_zj = balance_zj + {0}", receivable.getAmount_paid_zj());
-                    userService.update(uw);
-
-                    User refundedUser = userService.getById(order.getUser_id_zj());
-                    if (refundedUser != null) {
-                        BalanceLog bl2 = new BalanceLog();
+                    if (!userService.update(uw)) refundFailed = true;
+                    else {
+                        User refundedUser = userService.getById(order.getUser_id_zj());
+                        if (refundedUser != null) {
+                            BalanceLog bl2 = new BalanceLog();
                     bl2.setUser_id_zj(order.getUser_id_zj());
                     bl2.setChange_amount_zj(receivable.getAmount_paid_zj());
                     bl2.setCurrent_balance_zj(refundedUser.getBalance_zj());
@@ -366,6 +366,7 @@ public class OrderController {
                     bl2.setRemark_zj("赊账订单退款-已还金额退回");
                     bl2.setCreated_at_zj(LocalDateTime.now());
                     balanceLogService.save(bl2);
+                        }
                     }
                 }
                 receivable.setStatus_zj("void");

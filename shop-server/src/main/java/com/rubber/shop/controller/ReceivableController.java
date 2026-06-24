@@ -68,6 +68,8 @@ public class ReceivableController {
     public Result<?> repay(@PathVariable Long id, @RequestBody @Valid RepaymentRequest req) {
         Receivable r = receivableService.getById(id);
         if (r == null) throw new BusinessException("应收记录不存在");
+        if (!isAdmin() && !r.getUser_id_zj().equals(getCurrentUserId()))
+            throw new BusinessException("无权操作该应收记录");
         if ("paid".equals(r.getStatus_zj()) || "void".equals(r.getStatus_zj()))
             throw new BusinessException("该应收已结清或已作废");
 

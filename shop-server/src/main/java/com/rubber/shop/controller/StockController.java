@@ -42,6 +42,7 @@ public class StockController {
     @PostMapping("/adjust")
     @Transactional
     public Result<?> adjust(@RequestParam Long productId, @RequestParam int quantity, @RequestParam String type) {
+        if (quantity <= 0) throw new BusinessException("调整数量必须大于0");
         if (!"manual_in".equals(type) && !"manual_out".equals(type))
             throw new BusinessException("类型仅支持 manual_in 或 manual_out");
 
@@ -49,7 +50,9 @@ public class StockController {
         if (p == null) throw new BusinessException("商品不存在");
 
         int change = "manual_out".equals(type) ? -quantity : quantity;
-        if ("manual_out".equals(type) && p.getStock_zj() < quantity)
+        Integer currentStock = p.getStock_zj();
+        if (currentStock == null) currentStock = 0;
+        if ("manual_out".equals(type) && currentStock < quantity)
             throw new BusinessException("库存不足，当前库存：" + p.getStock_zj());
 
         LambdaUpdateWrapper<Product> pw = new LambdaUpdateWrapper<>();
@@ -72,8 +75,13 @@ public class StockController {
     @GetMapping("/warnings")
     public Result<List<Product>> warnings() {
         List<Product> list = productService.list(new LambdaQueryWrapper<Product>().eq(Product::getStatus_zj, "on"));
-        list.removeIf(p -> p.getStock_zj() > (p.getWarning_stock_zj() != null && p.getWarning_stock_zj() > 0
-                ? p.getWarning_stock_zj() : 10));
+        list.removeIf(p -> {
+            Integer stock = p.getStock_zj();
+            if (stock == null) stock = 0;
+            int threshold = p.getWarning_stock_zj() != null && p.getWarning_stock_zj() > 0
+                    ? p.getWarning_stock_zj() : 10;
+            return stock > threshold;
+        });
         return Result.success(list);
     }
 }

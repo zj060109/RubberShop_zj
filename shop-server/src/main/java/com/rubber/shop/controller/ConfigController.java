@@ -37,6 +37,7 @@ public class ConfigController {
         if (config == null) throw new BusinessException("配置项不存在");
 
         config.setConfig_value_zj(value);
+        if (body.containsKey("remark")) config.setRemark_zj(body.get("remark"));
         config.setUpdated_at_zj(LocalDateTime.now());
         sysConfigService.updateById(config);
         return Result.success("修改成功", null);
