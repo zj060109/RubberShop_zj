@@ -7,8 +7,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rubber.shop.common.BusinessException;
 import com.rubber.shop.common.Result;
 import com.rubber.shop.dto.ProductRequest;
+import com.rubber.shop.entity.OrderItem;
 import com.rubber.shop.entity.Product;
+import com.rubber.shop.entity.PurchaseItem;
+import com.rubber.shop.service.OrderItemService;
 import com.rubber.shop.service.ProductService;
+import com.rubber.shop.service.PurchaseItemService;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -22,10 +26,15 @@ import java.time.LocalDateTime;
 public class ProductController {
 
     private final ProductService productService;
+    private final OrderItemService orderItemService;
+    private final PurchaseItemService purchaseItemService;
     private final ObjectMapper objectMapper;
 
-    public ProductController(ProductService productService, ObjectMapper objectMapper) {
+    public ProductController(ProductService productService, OrderItemService orderItemService,
+            PurchaseItemService purchaseItemService, ObjectMapper objectMapper) {
         this.productService = productService;
+        this.orderItemService = orderItemService;
+        this.purchaseItemService = purchaseItemService;
         this.objectMapper = objectMapper;
     }
 
@@ -145,6 +154,11 @@ public class ProductController {
         Product product = productService.getById(id);
         if (product == null) {
             throw new BusinessException("商品不存在");
+        }
+        long orderRefs = orderItemService.count(new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getProduct_id_zj, id));
+        long purchaseRefs = purchaseItemService.count(new LambdaQueryWrapper<PurchaseItem>().eq(PurchaseItem::getProduct_id_zj, id));
+        if (orderRefs > 0 || purchaseRefs > 0) {
+            throw new BusinessException("商品已被订单或采购单引用，无法删除");
         }
         productService.removeById(id);
         return Result.success("商品删除成功", null);

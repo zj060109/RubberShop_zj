@@ -35,7 +35,10 @@ public class StatisticsController {
 
         BigDecimal totalSales = BigDecimal.ZERO;
         int totalOrders = completedOrders.size();
-        for (Order o : completedOrders) totalSales = totalSales.add(o.getActual_amount_zj());
+        for (Order o : completedOrders) {
+            BigDecimal amount = o.getActual_amount_zj();
+            if (amount != null) totalSales = totalSales.add(amount);
+        }
 
         LocalDateTime today = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
         LambdaQueryWrapper<Order> tw = new LambdaQueryWrapper<>();
