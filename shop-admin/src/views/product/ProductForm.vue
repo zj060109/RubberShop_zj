@@ -11,7 +11,7 @@
 
         <el-form-item label="商品分类" prop="categoryId">
           <el-tree-select v-model="form.categoryId" :data="categoryTree"
-            :props="{ label: 'name_zj', value: 'id_zj', children: 'children' }"
+            :props="{ label: 'name', value: 'id', children: 'children' }"
             placeholder="请选择商品分类" check-strictly class="form-select-260" @change="onCategoryChange" />
         </el-form-item>
         <el-form-item label="尺寸规格" prop="spec">
@@ -107,7 +107,6 @@ const categoryTree = ref([])
 const factories = ref([])
 
 const form = reactive({
-  name: '',
   categoryName: '',
   categoryId: null,
   spec: '',
@@ -134,7 +133,7 @@ const loadCategories = async () => {
 
 const findCategoryName = (id, tree) => {
   for (const node of tree) {
-    if (node.id_zj === id) return node.name_zj
+    if (node.id === id) return node.name
     if (node.children) {
       const found = findCategoryName(id, node.children)
       if (found) return found
@@ -159,7 +158,6 @@ const loadProduct = async (id) => {
   try {
     const res = await getProductDetail(id)
     const p = res.data
-    form.name = p.name_zj || ''
     form.categoryId = p.category_id_zj
     form.spec = p.spec_zj || ''
     form.description = p.description_zj || ''

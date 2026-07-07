@@ -69,8 +69,6 @@ public class ProfileFragment extends Fragment {
             });
 
     private void pickAvatarImage() {
-        startActivityForResult(new Intent(Intent.ACTION_GET_CONTENT).setType("image/*"), 0);
-        // Use simplified approach with startActivityForResult
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("image/*");
         avatarPickerLauncher.launch(intent);

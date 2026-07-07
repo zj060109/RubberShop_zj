@@ -66,12 +66,13 @@
       <div class="pagination-wrap">
         <el-pagination
           v-model:current-page="page"
+          v-model:page-size="pageSize"
           :page-sizes="[10, 20, 50]"
-          :page-size="pageSize"
           :total="total"
           layout="total, sizes, prev, pager, next"
           background
           @current-change="loadData"
+          @size-change="loadData"
         />
       </div>
     </el-card>

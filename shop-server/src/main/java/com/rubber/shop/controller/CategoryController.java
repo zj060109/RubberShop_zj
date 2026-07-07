@@ -100,11 +100,11 @@ public class CategoryController {
 
     private CategoryTreeResponse buildTree(Category category, Map<Long, List<Category>> childrenMap) {
         CategoryTreeResponse node = new CategoryTreeResponse();
-        node.setId_zj(category.getId_zj());
-        node.setName_zj(category.getName_zj());
-        node.setParent_id_zj(category.getParent_id_zj());
-        node.setSort_zj(category.getSort_zj());
-        node.setIcon_zj(category.getIcon_zj());
+        node.setId(category.getId_zj());
+        node.setName(category.getName_zj());
+        node.setParentId(category.getParent_id_zj());
+        node.setSort(category.getSort_zj());
+        node.setIcon(category.getIcon_zj());
 
         List<Category> children = childrenMap.get(category.getId_zj());
         if (children != null) {

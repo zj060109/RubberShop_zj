@@ -16,6 +16,9 @@ public class ChatConversationServiceImpl extends ServiceImpl<ChatConversationMap
     public ChatConversation getOrCreate(Long customerId, Long merchantId) {
         LambdaQueryWrapper<ChatConversation> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ChatConversation::getCustomer_id_zj, customerId);
+        if (merchantId != null) {
+            wrapper.eq(ChatConversation::getMerchant_id_zj, merchantId);
+        }
         ChatConversation conv = this.getOne(wrapper);
         if (conv == null) {
             conv = new ChatConversation();

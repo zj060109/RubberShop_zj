@@ -106,9 +106,6 @@ public class ChatFragment extends Fragment {
                 messages.add(data);
                 adapter.notifyItemInserted(messages.size() - 1);
                 chatRecycler.scrollToPosition(messages.size() - 1);
-                if (conversationId == null) {
-                    conversationId = data.getConversationId();
-                }
             }
 
             @Override

@@ -9,7 +9,7 @@
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="adjust-form">
           <el-form-item label="商品分类" prop="categoryId">
             <el-tree-select v-model="form.categoryId" :data="categoryTree"
-              :props="{ label: 'name_zj', value: 'id_zj', children: 'children' }"
+              :props="{ label: 'name', value: 'id', children: 'children' }"
               placeholder="请选择商品分类" check-strictly class="form-select-260" @change="onCategoryChange" />
           </el-form-item>
           <el-form-item label="尺寸规格" prop="spec">
@@ -62,16 +62,6 @@ const productInfo = ref(null)
 const categoryTree = ref([])
 const availableSpecs = ref([])
 const matchedProductId = ref(null)
-
-const handleProductIdChange = async (val) => {
-  if (!val) { productInfo.value = null; return }
-  try {
-    const res = await getProductDetail(val)
-    productInfo.value = { name: res.data.name_zj || res.data.name || '未知', stock: res.data.stock_zj || 0 }
-  } catch {
-    productInfo.value = null
-  }
-}
 
 const form = reactive({
   categoryId: null,

@@ -100,15 +100,7 @@ public class MainActivity extends AppCompatActivity {
 
         bottomNav.setOnItemSelectedListener(item -> {
             int itemId = item.getItemId();
-            boolean popped = false;
-            while (getSupportFragmentManager().findFragmentByTag("chat_detail") != null) {
-                getSupportFragmentManager().popBackStack();
-                popped = true;
-            }
-            if (popped) {
-                navController.navigate(itemId);
-                return true;
-            }
+            getSupportFragmentManager().popBackStack("chat_detail", androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE);
             return NavigationUI.onNavDestinationSelected(item, navController);
         });
         bottomNavConfigured = true;

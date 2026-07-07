@@ -13,8 +13,8 @@
       <el-tree
         v-else
         :data="treeData"
-        :props="{ label: 'name_zj', children: 'children' }"
-        node-key="id_zj"
+        :props="{ label: 'name', children: 'children' }"
+        node-key="id"
         default-expand-all
         highlight-current
       >
@@ -22,7 +22,7 @@
           <div class="tree-node">
             <div class="tree-node-info">
               <span class="tree-node-name">{{ node.label }}</span>
-              <span class="tree-node-sort">排序：{{ data.sort_zj || 0 }}</span>
+              <span class="tree-node-sort">排序：{{ data.sort || 0 }}</span>
             </div>
             <div class="tree-node-actions">
               <el-button size="small" type="primary" text @click.stop="handleAdd(data)">添加子分类</el-button>
@@ -94,8 +94,8 @@ const handleAdd = (parent) => {
 const handleEdit = (node) => {
   editingNode.value = node
   parentNode.value = null
-  dialogForm.name = node.name_zj
-  dialogForm.sort = node.sort_zj || 0
+  dialogForm.name = node.name
+  dialogForm.sort = node.sort || 0
   dialogVisible.value = true
 }
 
@@ -110,17 +110,17 @@ const handleSave = async () => {
   saving.value = true
   try {
     if (editingNode.value) {
-      await updateCategory(editingNode.value.id_zj, {
+      await updateCategory(editingNode.value.id, {
         name: dialogForm.name,
         sort: dialogForm.sort,
-        parentId: editingNode.value.parent_id_zj
+        parentId: editingNode.value.parentId
       })
       ElMessage.success('修改成功')
     } else {
       await createCategory({
         name: dialogForm.name,
         sort: dialogForm.sort,
-        parentId: parentNode.value ? parentNode.value.id_zj : 0
+        parentId: parentNode.value ? parentNode.value.id : 0
       })
       ElMessage.success('添加成功')
     }
@@ -133,12 +133,12 @@ const handleSave = async () => {
 
 const handleDelete = (node) => {
   ElMessageBox.confirm(
-    '确定删除分类「' + node.name_zj + '」？如果存在子分类或关联商品将无法删除。',
+    '确定删除分类「' + node.name + '」？如果存在子分类或关联商品将无法删除。',
     '确认删除',
     { type: 'warning' }
   ).then(async () => {
     try {
-      await deleteCategory(node.id_zj)
+      await deleteCategory(node.id)
       ElMessage.success('删除成功')
       loadTree()
     } catch {}

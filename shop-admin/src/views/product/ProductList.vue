@@ -5,7 +5,7 @@
           <el-input v-model="keyword" placeholder="搜索商品尺寸" clearable style="width:220px" @keyup.enter="search">
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
-        <el-tree-select v-model="categoryId" :data="categoryTree" :props="{ label: 'name_zj', value: 'id_zj', children: 'children' }"
+        <el-tree-select v-model="categoryId" :data="categoryTree" :props="{ label: 'name', value: 'id', children: 'children' }"
           placeholder="全部分类" clearable check-strictly style="width:180px;margin-left:12px" @change="search" />
         <el-button type="primary" :loading="loading" @click="search" style="margin-left:12px">搜索</el-button>
       </div>
@@ -88,7 +88,7 @@ const firstImage = (row) => {
 const getCategoryName = (id) => {
   const find = (list) => {
     for (const item of list) {
-      if (item.id_zj === id) return item.name_zj
+      if (item.id === id) return item.name
       if (item.children) {
         const found = find(item.children)
         if (found) return found

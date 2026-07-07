@@ -52,7 +52,7 @@ public class TokenManager {
     public static void clearSavedCredentials() {
         SharedPreferences p = getPrefs();
         if (p != null) {
-            p.edit().remove(KEY_SAVED_PHONE).remove(KEY_SAVED_PASSWORD).commit();
+            p.edit().remove(KEY_SAVED_PHONE).remove(KEY_SAVED_PASSWORD).apply();
         }
     }
 
