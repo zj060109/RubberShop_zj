@@ -1,15 +1,22 @@
 package com.rubber.shop.common;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
@@ -59,6 +66,32 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public Result<?> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
         return Result.fail(405, "不支持的请求方法");
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public Result<?> handleDataIntegrity(DataIntegrityViolationException e) {
+        log.warn("数据完整性异常", e);
+        return Result.fail(400, "数据冲突，请检查操作是否重复");
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public Result<?> handleMissingParam(MissingServletRequestParameterException e) {
+        return Result.fail(400, "缺少必要参数：" + e.getParameterName());
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public Result<?> handleMaxUploadSize(MaxUploadSizeExceededException e) {
+        return Result.fail(413, "上传文件过大，请压缩后重试");
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public Result<?> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException e) {
+        return Result.fail(415, "不支持的Content-Type");
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public Result<?> handleDisabled(DisabledException e) {
+        return Result.fail(403, "账号已被禁用");
     }
 
     @ExceptionHandler(Exception.class)

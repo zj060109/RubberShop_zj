@@ -19,8 +19,8 @@ CREATE TABLE user_zj (
     real_name_zj VARCHAR(50) DEFAULT NULL COMMENT '真实姓名',
     avatar_zj VARCHAR(255) DEFAULT NULL COMMENT '头像URL',
     balance_zj DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '账户余额',
-    points_zj INT(11) DEFAULT 0 COMMENT '积分（预留）',
-    credit_limit_zj DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '赊账额度',
+    points_zj INT(11) DEFAULT 0 COMMENT '积分（10分解锁赊账）',
+    credit_limit_zj DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '赊账额度（系统自动授予）',
     company_name_zj VARCHAR(100) DEFAULT NULL COMMENT '厂家公司名',
     default_receiver_name_zj VARCHAR(50) DEFAULT NULL COMMENT '默认收货人',
     default_receiver_phone_zj VARCHAR(20) DEFAULT NULL COMMENT '默认收货电话',
@@ -36,7 +36,24 @@ CREATE TABLE user_zj (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
 -- ----------------------------
--- 2. category_zj 商品分类表
+-- 2. identity_verification_zj 实名认证表
+-- ----------------------------
+DROP TABLE IF EXISTS identity_verification_zj;
+CREATE TABLE identity_verification_zj (
+    id_zj BIGINT(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
+    user_id_zj BIGINT(20) NOT NULL COMMENT '用户ID',
+    id_card_zj VARCHAR(18) NOT NULL COMMENT '身份证号',
+    real_name_zj VARCHAR(50) NOT NULL COMMENT '真实姓名',
+    face_image_zj VARCHAR(500) DEFAULT NULL COMMENT '人脸照片URL',
+    status_zj TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1-已认证 0-已失效',
+    created_at_zj DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '认证时间',
+    updated_at_zj DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (id_zj),
+    UNIQUE KEY uk_verify_user (user_id_zj)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='实名认证表';
+
+-- ----------------------------
+-- 3. category_zj 商品分类表
 -- ----------------------------
 DROP TABLE IF EXISTS category_zj;
 CREATE TABLE category_zj (
@@ -177,7 +194,7 @@ CREATE TABLE purchase_zj (
     order_no_zj VARCHAR(32) NOT NULL COMMENT '采购单号',
     factory_id_zj BIGINT(20) NOT NULL COMMENT '厂家ID',
     total_amount_zj DECIMAL(10,2) NOT NULL COMMENT '采购总额',
-    status_zj ENUM('pending','confirmed','shipped','received','cancelled') NOT NULL DEFAULT 'pending' COMMENT '采购状态',
+    status_zj VARCHAR(20) NOT NULL DEFAULT 'pending' COMMENT '采购状态(pending/quoted/paid/shipped/received/cancelled)',
     expected_delivery_date_zj DATE DEFAULT NULL COMMENT '预计交货日期',
     express_company_zj VARCHAR(50) DEFAULT NULL COMMENT '物流公司',
     tracking_no_zj VARCHAR(50) DEFAULT NULL COMMENT '物流单号',
@@ -293,8 +310,8 @@ CREATE TABLE sys_config_zj (
 -- ============================================
 
 -- 预置商家账号（密码 admin123，明文存储）
-INSERT INTO user_zj (phone_zj, password_zj, role_zj, real_name_zj, balance_zj, credit_limit_zj, status_zj, created_at_zj)
-VALUES ('13800000000', 'admin123', 'merchant', '系统管理员', 0.00, 0.00, 1, NOW());
+INSERT INTO user_zj (phone_zj, password_zj, role_zj, real_name_zj, balance_zj, status_zj, created_at_zj)
+VALUES ('13800000000', 'admin123', 'merchant', '系统管理员', 0.00, 1, NOW());
 
 -- 预置厂家账号
 INSERT INTO user_zj (phone_zj, password_zj, role_zj, company_name_zj, status_zj, created_at_zj)

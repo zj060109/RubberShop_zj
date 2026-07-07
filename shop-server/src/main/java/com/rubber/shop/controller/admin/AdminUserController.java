@@ -3,6 +3,7 @@ package com.rubber.shop.controller.admin;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.rubber.shop.common.AuthUtils;
 import com.rubber.shop.common.BusinessException;
 import com.rubber.shop.common.Result;
 import com.rubber.shop.dto.AdminUserDetailResponse;
@@ -37,6 +38,8 @@ public class AdminUserController {
             @RequestParam(required = false) String phone,
             @RequestParam(required = false) String role) {
 
+        AuthUtils.requireMerchant();
+
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
         if (phone != null && !phone.isEmpty()) {
             wrapper.like(User::getPhone_zj, phone);
@@ -55,6 +58,7 @@ public class AdminUserController {
 
     @GetMapping("/{id}")
     public Result<AdminUserDetailResponse> detail(@PathVariable Long id) {
+        AuthUtils.requireMerchant();
         User user = userService.getById(id);
         if (user == null) {
             throw new BusinessException("用户不存在");
@@ -65,17 +69,18 @@ public class AdminUserController {
     @PutMapping("/{id}")
     @Transactional
     public Result<?> update(@PathVariable Long id, @RequestBody @Valid AdminUserUpdateRequest req) {
+        AuthUtils.requireMerchant();
         User user = userService.getById(id);
         if (user == null) {
             throw new BusinessException("用户不存在");
         }
 
-        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(User::getId_zj, id);
-
         if (req.getBalance() != null && req.getBalance().compareTo(BigDecimal.ZERO) != 0) {
             BigDecimal amount = req.getBalance();
+            LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
+            wrapper.eq(User::getId_zj, id);
             wrapper.setSql("balance_zj = balance_zj + {0}", amount);
+            wrapper.setSql("updated_at_zj = NOW()");
             if (amount.compareTo(BigDecimal.ZERO) < 0) {
                 wrapper.ge(User::getBalance_zj, amount.abs());
             }
@@ -94,17 +99,33 @@ public class AdminUserController {
             balanceLogService.save(log);
         }
 
-        if (req.getCreditLimit() != null || req.getStatus() != null) {
+        if (req.getPoints() != null) {
+            LambdaUpdateWrapper<User> pw = new LambdaUpdateWrapper<>();
+            pw.eq(User::getId_zj, id);
+            pw.set(User::getPoints_zj, req.getPoints());
+            pw.set(User::getUpdated_at_zj, LocalDateTime.now());
+            userService.update(pw);
+        }
+
+        if (req.getStatus() != null && req.getStatus() != 0 && req.getStatus() != 1) {
+            throw new BusinessException("状态值无效，仅支持0或1");
+        }
+        if (req.getStatus() != null) {
             LambdaUpdateWrapper<User> fieldWrapper = new LambdaUpdateWrapper<>();
             fieldWrapper.eq(User::getId_zj, id);
-            if (req.getCreditLimit() != null) {
-                fieldWrapper.set(User::getCredit_limit_zj, req.getCreditLimit());
-            }
-            if (req.getStatus() != null) {
-                fieldWrapper.set(User::getStatus_zj, req.getStatus());
-            }
+            fieldWrapper.set(User::getStatus_zj, req.getStatus());
             fieldWrapper.set(User::getUpdated_at_zj, LocalDateTime.now());
             userService.update(fieldWrapper);
+        }
+
+        if (req.getPoints() != null && req.getPoints() >= 10) {
+            User afterPoints = userService.getById(id);
+            if (afterPoints.getCredit_limit_zj() == null || afterPoints.getCredit_limit_zj().compareTo(BigDecimal.ZERO) <= 0) {
+                LambdaUpdateWrapper<User> cw = new LambdaUpdateWrapper<>();
+                cw.eq(User::getId_zj, id)
+                  .set(User::getCredit_limit_zj, new BigDecimal("5000.00"));
+                userService.update(cw);
+            }
         }
 
         return Result.success("修改成功", null);
@@ -118,6 +139,7 @@ public class AdminUserController {
         dto.setRealName(user.getReal_name_zj());
         dto.setAvatar(user.getAvatar_zj());
         dto.setBalance(user.getBalance_zj());
+        dto.setPoints(user.getPoints_zj());
         dto.setCreditLimit(user.getCredit_limit_zj());
         dto.setCompanyName(user.getCompany_name_zj());
         dto.setDefaultReceiverName(user.getDefault_receiver_name_zj());

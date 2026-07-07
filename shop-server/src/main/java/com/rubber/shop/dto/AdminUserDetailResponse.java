@@ -14,6 +14,7 @@ public class AdminUserDetailResponse {
     private String realName;
     private String avatar;
     private BigDecimal balance;
+    private Integer points;
     private BigDecimal creditLimit;
     private String companyName;
     private String defaultReceiverName;

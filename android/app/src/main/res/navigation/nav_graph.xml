@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/authFragment">
+
+    <!-- ======  Auth  ====== -->
+    <fragment android:id="@+id/authFragment" android:name="com.rubbershop.app.ui.auth.AuthFragment" android:label="登录" />
+
+    <!-- ======  Customer (5 tabs: 首页/定制/订单/客服/我的)  ====== -->
+    <fragment android:id="@+id/customerHomeFragment" android:name="com.rubbershop.app.ui.home.HomeFragment" android:label="首页" />
+    <fragment android:id="@+id/customerChatFragment" android:name="com.rubbershop.app.ui.chat.ChatFragment" android:label="客服" />
+    <fragment android:id="@+id/productDetailFragment" android:name="com.rubbershop.app.ui.product.ProductDetailFragment" android:label="商品详情">
+        <argument android:name="productId" app:argType="long" />
+    </fragment>
+    <fragment android:id="@+id/customerOrderListFragment" android:name="com.rubbershop.app.ui.order.OrderListFragment" android:label="订单" />
+    <fragment android:id="@+id/orderDetailFragment" android:name="com.rubbershop.app.ui.order.OrderDetailFragment" android:label="订单详情">
+        <argument android:name="orderId" app:argType="long" />
+    </fragment>
+    <fragment android:id="@+id/creditListFragment" android:name="com.rubbershop.app.ui.credit.CreditListFragment" android:label="赊账" />
+    <fragment android:id="@+id/customerProfileFragment" android:name="com.rubbershop.app.ui.profile.ProfileFragment" android:label="我的" />
+    <fragment android:id="@+id/customListFragment" android:name="com.rubbershop.app.ui.custom.CustomListFragment" android:label="定制" />
+    <fragment android:id="@+id/customCreateFragment" android:name="com.rubbershop.app.ui.custom.CustomCreateFragment" android:label="提交定制" />
+    <fragment android:id="@+id/customDetailFragment" android:name="com.rubbershop.app.ui.custom.CustomDetailFragment" android:label="定制详情">
+        <argument android:name="customId" app:argType="long" />
+    </fragment>
+
+    <!-- ======  Merchant (4 tabs: 商品/订单/客服/我的)  ====== -->
+    <fragment android:id="@+id/merchantProductListFragment" android:name="com.rubbershop.app.ui.merchant.ProductListFragment" android:label="商品管理" />
+    <fragment android:id="@+id/merchantOrderListFragment" android:name="com.rubbershop.app.ui.merchant.OrderListFragment" android:label="订单管理" />
+    <fragment android:id="@+id/merchantChatFragment" android:name="com.rubbershop.app.ui.chat.ChatListFragment" android:label="客服" />
+    <fragment android:id="@+id/chatDetailFragment" android:name="com.rubbershop.app.ui.chat.ChatDetailFragment" android:label="聊天详情">
+        <argument android:name="convId" app:argType="long" />
+        <argument android:name="name" app:argType="string" />
+        <argument android:name="phone" app:argType="string" />
+    </fragment>
+    <fragment android:id="@+id/merchantProfileFragment" android:name="com.rubbershop.app.ui.merchant.MerchantProfileFragment" android:label="我的" />
+
+    <!-- ======  Factory (2 tabs: 采购单/我的)  ====== -->
+    <fragment android:id="@+id/factoryPurchaseFragment" android:name="com.rubbershop.app.ui.factory.PurchaseFragment" android:label="采购单" />
+    <fragment android:id="@+id/factoryProfileFragment" android:name="com.rubbershop.app.ui.factory.FactoryProfileFragment" android:label="我的" />
+
+    <!-- Shared -->
+    <fragment android:id="@+id/merchantCreditFragment" android:name="com.rubbershop.app.ui.credit.CreditListFragment" android:label="赊账管理" />
+</navigation>

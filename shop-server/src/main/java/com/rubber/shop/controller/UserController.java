@@ -3,6 +3,7 @@ package com.rubber.shop.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.rubber.shop.common.AuthUtils;
 import com.rubber.shop.common.BusinessException;
 import com.rubber.shop.common.Result;
 import com.rubber.shop.dto.ProfileUpdateRequest;
@@ -13,6 +14,7 @@ import com.rubber.shop.entity.User;
 import com.rubber.shop.service.BalanceLogService;
 import com.rubber.shop.service.UserService;
 import jakarta.validation.Valid;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -39,6 +41,7 @@ public class UserController {
     }
 
     @PutMapping("/profile")
+    @Transactional
     public Result<?> updateProfile(@RequestBody ProfileUpdateRequest req) {
         User user = getCurrentUser();
         if (req.getRealName() != null) {
@@ -118,7 +121,7 @@ public class UserController {
     }
 
     private Long getCurrentUserId() {
-        return (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return AuthUtils.getCurrentUserId();
     }
 
     private UserProfileResponse toProfileResponse(User user) {

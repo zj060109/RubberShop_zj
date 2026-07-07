@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary">#6366F1</color>
+    <color name="primary_dark">#4F46E5</color>
+    <color name="primary_light">#818CF8</color>
+    <color name="primary_bg">#EEF2FF</color>
+    <color name="primary_gradient_end">#3B82F6</color>
+    <color name="accent">#F59E0B</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#0F172A</color>
+    <color name="bg">#F1F5F9</color>
+    <color name="bg_card">#FFFFFF</color>
+    <color name="text_primary">#0F172A</color>
+    <color name="text_secondary">#475569</color>
+    <color name="text_muted">#94A3B8</color>
+    <color name="border">#E2E8F0</color>
+    <color name="border_light">#F1F5F9</color>
+    <color name="success">#10B981</color>
+    <color name="success_bg">#ECFDF5</color>
+    <color name="success_dark">#059669</color>
+    <color name="warning">#F59E0B</color>
+    <color name="warning_bg">#FFFBEB</color>
+    <color name="warning_dark">#D97706</color>
+    <color name="danger">#EF4444</color>
+    <color name="danger_bg">#FEF2F2</color>
+    <color name="info">#3B82F6</color>
+    <color name="info_bg">#EFF6FF</color>
+    <color name="divider">#E2E8F0</color>
+    <color name="gray_light">#F8FAFC</color>
+    <color name="gray">#94A3B8</color>
+    <color name="gray_dark">#64748B</color>
+    <color name="background">#F1F5F9</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="on_surface">#0F172A</color>
+</resources>

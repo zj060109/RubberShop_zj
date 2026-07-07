@@ -17,6 +17,8 @@ public class OrderCreateRequest {
     @NotBlank(message = "支付方式不能为空")
     private String paymentMethod;
 
+    private Integer needInstallation;
+
     private String receiverName;
     private String receiverPhone;
     private String province;

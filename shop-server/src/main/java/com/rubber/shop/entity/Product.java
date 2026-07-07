@@ -22,6 +22,9 @@ public class Product {
     @TableField("name_zj")
     private String name_zj;
 
+    @TableField("spec_zj")
+    private String spec_zj;
+
     @TableField("description_zj")
     private String description_zj;
 

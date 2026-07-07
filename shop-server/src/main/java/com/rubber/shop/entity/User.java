@@ -61,6 +61,24 @@ public class User {
     @TableField("default_detail_address_zj")
     private String default_detail_address_zj;
 
+    @TableField("mch_province_zj")
+    private String mch_province_zj;
+
+    @TableField("mch_city_zj")
+    private String mch_city_zj;
+
+    @TableField("mch_district_zj")
+    private String mch_district_zj;
+
+    @TableField("mch_detail_address_zj")
+    private String mch_detail_address_zj;
+
+    @TableField("mch_receiver_name_zj")
+    private String mch_receiver_name_zj;
+
+    @TableField("mch_receiver_phone_zj")
+    private String mch_receiver_phone_zj;
+
     @TableField("status_zj")
     private Integer status_zj;
 

@@ -18,6 +18,5 @@ public class PurchaseItemRequest {
     @NotNull(message = "数量不能为空")
     private Integer quantity;
 
-    @NotNull(message = "单价不能为空")
     private BigDecimal unitPrice;
 }

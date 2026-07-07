@@ -16,4 +16,6 @@ public class PurchaseCreateRequest {
     @Valid
     @NotEmpty(message = "采购明细不能为空")
     private List<PurchaseItemRequest> items;
+
+    private String expectedDeliveryDate;
 }

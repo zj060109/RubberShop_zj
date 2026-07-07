@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/merchantProductListFragment" android:title="商品" android:icon="@drawable/ic_product"/>
+    <item android:id="@+id/merchantOrderListFragment" android:title="订单" android:icon="@drawable/ic_order"/>
+    <item android:id="@+id/merchantChatFragment" android:title="客服" android:icon="@drawable/ic_chat"/>
+    <item android:id="@+id/merchantProfileFragment" android:title="我的" android:icon="@drawable/ic_profile"/>
+</menu>

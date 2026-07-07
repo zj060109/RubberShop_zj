@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rubber.shop.common.AuthUtils;
 import com.rubber.shop.common.BusinessException;
 import com.rubber.shop.common.Result;
 import com.rubber.shop.dto.*;
@@ -35,19 +36,25 @@ public class CustomizationController {
     private final UserService userService;
     private final BalanceLogService balanceLogService;
     private final ReceivableService receivableService;
+    private final IdentityVerificationService identityVerificationService;
+    private final StockLogService stockLogService;
     private final ObjectMapper objectMapper;
 
     public CustomizationController(CustomizationService cs, CustomizationItemService is,
             ProductService ps, OrderService os, OrderItemService ois, OrderStatusLogService osls,
-            UserService us, BalanceLogService bls, ReceivableService rs, ObjectMapper om) {
+            UserService us, BalanceLogService bls, ReceivableService rs,
+            IdentityVerificationService ivs, StockLogService sls, ObjectMapper om) {
         this.customizationService = cs; this.itemService = is;
         this.productService = ps; this.orderService = os; this.orderItemService = ois;
         this.orderStatusLogService = osls; this.userService = us;
-        this.balanceLogService = bls; this.receivableService = rs; this.objectMapper = om;
+        this.balanceLogService = bls; this.receivableService = rs;
+        this.identityVerificationService = ivs; this.stockLogService = sls;
+        this.objectMapper = om;
     }
 
     @PostMapping
-    public Result<?> create(@RequestBody CustomizationCreateRequest req) {
+    @Transactional
+    public Result<?> create(@RequestBody @Valid CustomizationCreateRequest req) {
         Customization c = new Customization();
         c.setUser_id_zj(getCurrentUserId());
         c.setStatus_zj("pending_quote");
@@ -64,9 +71,11 @@ public class CustomizationController {
     @GetMapping
     public Result<Page<Customization>> list(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int pageSize) {
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String status) {
         LambdaQueryWrapper<Customization> w = new LambdaQueryWrapper<>();
-        if (!isAdmin()) w.eq(Customization::getUser_id_zj, getCurrentUserId());
+        if (!isMerchant()) w.eq(Customization::getUser_id_zj, getCurrentUserId());
+        if (status != null && !status.isEmpty()) w.eq(Customization::getStatus_zj, status);
         w.orderByDesc(Customization::getCreated_at_zj);
         return Result.success(customizationService.page(new Page<>(page, pageSize), w));
     }
@@ -75,15 +84,18 @@ public class CustomizationController {
     public Result<Customization> detail(@PathVariable Long id) {
         Customization c = customizationService.getById(id);
         if (c == null) throw new BusinessException("定制不存在");
-        if (!isAdmin() && !c.getUser_id_zj().equals(getCurrentUserId()))
+        if (!isMerchant() && !c.getUser_id_zj().equals(getCurrentUserId()))
             throw new BusinessException("无权查看");
+        LambdaQueryWrapper<CustomizationItem> iw = new LambdaQueryWrapper<>();
+        iw.eq(CustomizationItem::getCustomization_id_zj, id);
+        c.setItems(itemService.list(iw));
         return Result.success(c);
     }
 
     @PutMapping("/{id}/quote")
     @Transactional
     public Result<?> quote(@PathVariable Long id, @RequestBody @Valid QuoteRequest req) {
-        if (!isAdmin()) throw new BusinessException("权限不足");
+        if (!isMerchant()) throw new BusinessException("权限不足");
         Customization c = customizationService.getById(id);
         if (c == null) throw new BusinessException("定制不存在");
         if (!"pending_quote".equals(c.getStatus_zj())) throw new BusinessException("当前状态不允许报价");
@@ -181,6 +193,16 @@ public class CustomizationController {
             bl.setCreated_at_zj(LocalDateTime.now());
             balanceLogService.save(bl);
         } else {
+            if (user.getPoints_zj() == null || user.getPoints_zj() < 10)
+                throw new BusinessException("积分不足（需满10积分），无法使用赊账");
+            if (user.getCredit_limit_zj() == null || user.getCredit_limit_zj().compareTo(BigDecimal.ZERO) <= 0)
+                throw new BusinessException("赊账功能未解锁，请先达到10积分");
+            LambdaQueryWrapper<IdentityVerification> ivw = new LambdaQueryWrapper<>();
+            ivw.eq(IdentityVerification::getUser_id_zj, userId)
+               .eq(IdentityVerification::getStatus_zj, 1);
+            if (identityVerificationService.count(ivw) == 0)
+                throw new BusinessException("未完成实名认证，无法使用赊账");
+
             BigDecimal unpaidTotal = BigDecimal.ZERO;
             LambdaQueryWrapper<Receivable> rw2 = new LambdaQueryWrapper<>();
             rw2.eq(Receivable::getUser_id_zj, userId)
@@ -199,6 +221,22 @@ public class CustomizationController {
             rec.setStatus_zj("unpaid");
             rec.setCreated_at_zj(LocalDateTime.now());
             receivableService.save(rec);
+        }
+
+        if ("customer".equals(user.getRole_zj())) {
+            LambdaUpdateWrapper<User> pointsWrapper = new LambdaUpdateWrapper<>();
+            pointsWrapper.eq(User::getId_zj, userId)
+                .setSql("points_zj = points_zj + 1");
+            userService.update(pointsWrapper);
+
+            User afterPoints = userService.getById(userId);
+            if (afterPoints.getPoints_zj() != null && afterPoints.getPoints_zj() >= 10
+                    && (afterPoints.getCredit_limit_zj() == null || afterPoints.getCredit_limit_zj().compareTo(BigDecimal.ZERO) <= 0)) {
+                LambdaUpdateWrapper<User> creditWrapper = new LambdaUpdateWrapper<>();
+                creditWrapper.eq(User::getId_zj, userId)
+                    .set(User::getCredit_limit_zj, new BigDecimal("5000.00"));
+                userService.update(creditWrapper);
+            }
         }
 
         c.setOrder_id_zj(order.getId_zj());
@@ -220,7 +258,7 @@ public class CustomizationController {
     @PostMapping("/{id}/convert-to-product")
     @Transactional
     public Result<?> convertToProduct(@PathVariable Long id, @RequestParam Long categoryId) {
-        if (!isAdmin()) throw new BusinessException("权限不足");
+        if (!isMerchant()) throw new BusinessException("权限不足");
         Customization c = customizationService.getById(id);
         if (c == null) throw new BusinessException("定制不存在");
         if (!"confirmed".equals(c.getStatus_zj()) && !"converted".equals(c.getStatus_zj()))
@@ -244,6 +282,85 @@ public class CustomizationController {
         return Result.success("转换成功", null);
     }
 
+    @PostMapping("/{id}/cancel")
+    @Transactional
+    public Result<?> cancel(@PathVariable Long id) {
+        Long userId = getCurrentUserId();
+        Customization c = customizationService.getById(id);
+        if (c == null) throw new BusinessException("定制不存在");
+        if (!isMerchant() && !c.getUser_id_zj().equals(userId))
+            throw new BusinessException("无权操作");
+        String status = c.getStatus_zj();
+        if ("cancelled".equals(status)) throw new BusinessException("定制已取消");
+        if ("converted".equals(status)) throw new BusinessException("已转换的定制不可取消");
+
+        if ("confirmed".equals(status) && c.getOrder_id_zj() != null) {
+            Order order = orderService.getById(c.getOrder_id_zj());
+            if (order != null && !"cancelled".equals(order.getStatus_zj()) && !"refunded".equals(order.getStatus_zj())) {
+                if ("balance".equals(order.getPayment_method_zj())) {
+                    LambdaUpdateWrapper<User> uw = new LambdaUpdateWrapper<>();
+                    uw.eq(User::getId_zj, order.getUser_id_zj())
+                      .setSql("balance_zj = balance_zj + {0}", order.getActual_amount_zj());
+                    userService.update(uw);
+                    User refreshed = userService.getById(order.getUser_id_zj());
+                    if (refreshed != null) {
+                        BalanceLog bl = new BalanceLog();
+                        bl.setUser_id_zj(order.getUser_id_zj());
+                        bl.setChange_amount_zj(order.getActual_amount_zj());
+                        bl.setCurrent_balance_zj(refreshed.getBalance_zj());
+                        bl.setType_zj("refund");
+                        bl.setReference_id_zj(order.getId_zj());
+                        bl.setRemark_zj("定制订单退款");
+                        bl.setCreated_at_zj(LocalDateTime.now());
+                        balanceLogService.save(bl);
+                    }
+                } else {
+                    LambdaQueryWrapper<Receivable> rw = new LambdaQueryWrapper<>();
+                    rw.eq(Receivable::getOrder_id_zj, order.getId_zj());
+                    Receivable receivable = receivableService.getOne(rw);
+                    if (receivable != null) {
+                        receivable.setStatus_zj("void");
+                        receivable.setUpdated_at_zj(LocalDateTime.now());
+                        receivableService.updateById(receivable);
+                    }
+                }
+                String oldOrderStatus = order.getStatus_zj();
+                LambdaUpdateWrapper<Order> ow = new LambdaUpdateWrapper<>();
+                ow.eq(Order::getId_zj, order.getId_zj())
+                  .eq(Order::getStatus_zj, oldOrderStatus)
+                  .set(Order::getStatus_zj, "cancelled")
+                  .set(Order::getUpdated_at_zj, LocalDateTime.now());
+                if (!orderService.update(ow)) throw new BusinessException("订单状态已变更，取消失败");
+
+                LambdaQueryWrapper<OrderItem> oiw = new LambdaQueryWrapper<>();
+                oiw.eq(OrderItem::getOrder_id_zj, order.getId_zj());
+                List<OrderItem> oitems = orderItemService.list(oiw);
+                for (OrderItem oi : oitems) {
+                    LambdaUpdateWrapper<Product> pw = new LambdaUpdateWrapper<>();
+                    pw.eq(Product::getId_zj, oi.getProduct_id_zj())
+                      .setSql("stock_zj = stock_zj + {0}", oi.getQuantity_zj());
+                    productService.update(pw);
+
+                    Product updated = productService.getById(oi.getProduct_id_zj());
+                    StockLog sl = new StockLog();
+                    sl.setProduct_id_zj(oi.getProduct_id_zj());
+                    sl.setChange_quantity_zj(oi.getQuantity_zj());
+                    sl.setCurrent_stock_zj(updated != null ? updated.getStock_zj() : 0);
+                    sl.setType_zj("refund_in");
+                    sl.setReference_id_zj(order.getId_zj());
+                    sl.setRemark_zj("定制订单退款入库");
+                    sl.setCreated_at_zj(LocalDateTime.now());
+                    stockLogService.save(sl);
+                }
+            }
+        }
+
+        c.setStatus_zj("cancelled");
+        c.setUpdated_at_zj(LocalDateTime.now());
+        customizationService.updateById(c);
+        return Result.success("已取消", null);
+    }
+
     private void setAddress(Order order) {
         User user = userService.getById(getCurrentUserId());
         String name = user.getDefault_receiver_name_zj();
@@ -265,16 +382,11 @@ public class CustomizationController {
         order.setDetail_address_zj(detail);
     }
 
-    private boolean isAdmin() {
-        Authentication a = SecurityContextHolder.getContext().getAuthentication();
-        if (a == null || !a.isAuthenticated()) return false;
-        for (GrantedAuthority g : a.getAuthorities()) {
-            if ("ROLE_MERCHANT".equals(g.getAuthority())) return true;
-        }
-        return false;
+    private boolean isMerchant() {
+        return AuthUtils.isMerchant();
     }
 
     private Long getCurrentUserId() {
-        return (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return AuthUtils.getCurrentUserId();
     }
 }

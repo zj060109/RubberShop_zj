@@ -4,19 +4,20 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rubber.shop.common.AuthUtils;
 import com.rubber.shop.common.BusinessException;
 import com.rubber.shop.common.Result;
 import com.rubber.shop.dto.ProductRequest;
+import com.rubber.shop.entity.Category;
 import com.rubber.shop.entity.OrderItem;
 import com.rubber.shop.entity.Product;
 import com.rubber.shop.entity.PurchaseItem;
+import com.rubber.shop.service.CategoryService;
 import com.rubber.shop.service.OrderItemService;
 import com.rubber.shop.service.ProductService;
 import com.rubber.shop.service.PurchaseItemService;
 import jakarta.validation.Valid;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -29,13 +30,16 @@ public class ProductController {
     private final OrderItemService orderItemService;
     private final PurchaseItemService purchaseItemService;
     private final ObjectMapper objectMapper;
+    private final CategoryService categoryService;
 
     public ProductController(ProductService productService, OrderItemService orderItemService,
-            PurchaseItemService purchaseItemService, ObjectMapper objectMapper) {
+            PurchaseItemService purchaseItemService, ObjectMapper objectMapper,
+            CategoryService categoryService) {
         this.productService = productService;
         this.orderItemService = orderItemService;
         this.purchaseItemService = purchaseItemService;
         this.objectMapper = objectMapper;
+        this.categoryService = categoryService;
     }
 
     @GetMapping
@@ -47,13 +51,13 @@ public class ProductController {
 
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<>();
         if (keyword != null && !keyword.isEmpty()) {
-            wrapper.like(Product::getName_zj, keyword);
+            wrapper.and(w -> w.like(Product::getName_zj, keyword).or().like(Product::getSpec_zj, keyword));
         }
         if (categoryId != null) {
             wrapper.eq(Product::getCategory_id_zj, categoryId);
         }
 
-        boolean isMerchant = isAdmin();
+        boolean isMerchant = AuthUtils.isMerchant();
         if (!isMerchant) {
             wrapper.eq(Product::getStatus_zj, "on");
         }
@@ -68,17 +72,27 @@ public class ProductController {
         if (product == null) {
             throw new BusinessException("商品不存在");
         }
-        if (!isAdmin() && !"on".equals(product.getStatus_zj())) {
+        if (!AuthUtils.isMerchant() && !"on".equals(product.getStatus_zj())) {
             throw new BusinessException("商品已下架");
         }
         return Result.success(product);
     }
 
     @PostMapping
+    @Transactional
     public Result<?> create(@RequestBody @Valid ProductRequest req) {
+        AuthUtils.requireMerchant();
         Product product = new Product();
         product.setCategory_id_zj(req.getCategoryId());
-        product.setName_zj(req.getName());
+
+        String categoryName = resolveCategoryName(req.getCategoryId());
+        String spec = req.getSpec() != null ? req.getSpec().trim() : "";
+        if (spec.isEmpty()) {
+            throw new BusinessException("尺寸不能为空");
+        }
+        product.setSpec_zj(spec);
+        product.setName_zj(categoryName + " - " + spec);
+
         product.setDescription_zj(req.getDescription());
         if (req.getImages() != null && !req.getImages().isEmpty()) {
             try {
@@ -98,16 +112,21 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
+    @Transactional
     public Result<?> update(@PathVariable Long id, @RequestBody ProductRequest req) {
+        AuthUtils.requireMerchant();
         Product product = productService.getById(id);
         if (product == null) {
             throw new BusinessException("商品不存在");
         }
         if (req.getCategoryId() != null) product.setCategory_id_zj(req.getCategoryId());
-        if (req.getName() != null) {
-            if (req.getName().isEmpty()) throw new BusinessException("商品名称不能为空");
-            product.setName_zj(req.getName());
+        String spec = product.getSpec_zj();
+        if (req.getSpec() != null && !req.getSpec().trim().isEmpty()) {
+            spec = req.getSpec().trim();
+            product.setSpec_zj(spec);
         }
+        String categoryName = resolveCategoryName(product.getCategory_id_zj());
+        product.setName_zj(categoryName + " - " + spec);
         if (req.getDescription() != null) product.setDescription_zj(req.getDescription());
         if (req.getImages() != null) {
             try {
@@ -135,7 +154,9 @@ public class ProductController {
     }
 
     @PutMapping("/{id}/status")
+    @Transactional
     public Result<?> toggleStatus(@PathVariable Long id, @RequestParam String status) {
+        AuthUtils.requireMerchant();
         if (!"on".equals(status) && !"off".equals(status)) {
             throw new BusinessException("状态值无效，仅支持 on 或 off");
         }
@@ -150,7 +171,9 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}")
+    @Transactional
     public Result<?> delete(@PathVariable Long id) {
+        AuthUtils.requireMerchant();
         Product product = productService.getById(id);
         if (product == null) {
             throw new BusinessException("商品不存在");
@@ -164,17 +187,9 @@ public class ProductController {
         return Result.success("商品删除成功", null);
     }
 
-    private boolean isAdmin() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
-            return false;
-        }
-        for (GrantedAuthority authority : auth.getAuthorities()) {
-            String role = authority.getAuthority();
-            if ("ROLE_MERCHANT".equals(role)) {
-                return true;
-            }
-        }
-        return false;
+    private String resolveCategoryName(Long categoryId) {
+        Category category = categoryService.getById(categoryId);
+        if (category == null) throw new BusinessException("分类不存在");
+        return category.getName_zj();
     }
 }

@@ -5,6 +5,7 @@ import com.rubber.shop.common.BusinessException;
 import com.rubber.shop.common.Result;
 import com.rubber.shop.entity.SysConfig;
 import com.rubber.shop.service.SysConfigService;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -27,6 +28,7 @@ public class ConfigController {
     }
 
     @PutMapping("/{key}")
+    @Transactional
     public Result<?> update(@PathVariable String key, @RequestBody Map<String, String> body) {
         String value = body.get("value");
         if (value == null) throw new BusinessException("配置值不能为空");

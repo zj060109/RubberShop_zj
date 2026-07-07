@@ -3,18 +3,18 @@ package com.rubber.shop.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.rubber.shop.common.AuthUtils;
 import com.rubber.shop.common.BusinessException;
 import com.rubber.shop.common.Result;
 import com.rubber.shop.dto.PurchaseCreateRequest;
 import com.rubber.shop.dto.PurchaseDetailResponse;
 import com.rubber.shop.dto.PurchaseItemRequest;
+import com.rubber.shop.dto.PurchaseQuoteRequest;
+import com.rubber.shop.dto.PurchaseQuoteItem;
 import com.rubber.shop.dto.UpdatePurchaseRequest;
 import com.rubber.shop.entity.*;
 import com.rubber.shop.service.*;
 import jakarta.validation.Valid;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,6 +41,7 @@ public class PurchaseController {
         this.productService = prs; this.stockLogService = sls; this.userService = us;
     }
 
+    // 1. 商户创建采购单（不含价格）
     @PostMapping
     @Transactional
     public Result<?> create(@RequestBody @Valid PurchaseCreateRequest req) {
@@ -49,53 +50,58 @@ public class PurchaseController {
         if (factory == null || !"factory".equals(factory.getRole_zj()))
             throw new BusinessException("厂家不存在");
 
+        if (req.getItems() == null || req.getItems().isEmpty())
+            throw new BusinessException("请至少添加一个采购明细");
+
         Purchase p = new Purchase();
         p.setOrder_no_zj("PUR" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS"))
                 + ThreadLocalRandom.current().nextInt(100, 999));
         p.setFactory_id_zj(req.getFactoryId());
         p.setStatus_zj("pending");
+        p.setTotal_amount_zj(BigDecimal.ZERO);
+        if (req.getExpectedDeliveryDate() != null) {
+            try {
+                p.setExpected_delivery_date_zj(java.time.LocalDate.parse(req.getExpectedDeliveryDate()));
+            } catch (Exception ignored) {}
+        }
         p.setCreated_at_zj(LocalDateTime.now());
+        purchaseService.save(p);
 
-        BigDecimal total = BigDecimal.ZERO;
-        List<PurchaseItem> items = new ArrayList<>();
         for (PurchaseItemRequest ir : req.getItems()) {
-            if (ir.getQuantity() <= 0) throw new BusinessException("数量必须大于0");
-            if (ir.getUnitPrice().compareTo(BigDecimal.ZERO) <= 0) throw new BusinessException("单价必须大于0");
-            BigDecimal subtotal = ir.getUnitPrice().multiply(new BigDecimal(ir.getQuantity()));
-            total = total.add(subtotal);
+            if (ir.getProductName() == null || ir.getProductName().isEmpty())
+                throw new BusinessException("商品名称不能为空");
+            if (ir.getQuantity() == null || ir.getQuantity() <= 0)
+                throw new BusinessException("数量必须大于0");
             PurchaseItem pi = new PurchaseItem();
+            pi.setPurchase_id_zj(p.getId_zj());
             pi.setProduct_id_zj(ir.getProductId());
             pi.setProduct_name_zj(ir.getProductName());
             pi.setSpec_zj(ir.getSpec());
             pi.setQuantity_zj(ir.getQuantity());
-            pi.setUnit_price_zj(ir.getUnitPrice());
-            pi.setSubtotal_zj(subtotal);
-            items.add(pi);
-        }
-        p.setTotal_amount_zj(total);
-        purchaseService.save(p);
-
-        for (PurchaseItem pi : items) {
-            pi.setPurchase_id_zj(p.getId_zj());
+            pi.setUnit_price_zj(BigDecimal.ZERO);
+            pi.setSubtotal_zj(BigDecimal.ZERO);
             itemService.save(pi);
         }
-        return Result.success("采购单创建成功", p);
+        return Result.success("采购单已发送给厂家", p);
     }
 
+    // 2. 列表（商户看全部，厂家看自己的）
     @GetMapping
     public Result<Page<Purchase>> list(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int pageSize) {
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String status) {
         LambdaQueryWrapper<Purchase> w = new LambdaQueryWrapper<>();
-        Long userId = getCurrentUserId();
+        if (status != null && !status.isEmpty()) w.eq(Purchase::getStatus_zj, status);
         boolean isMerch = isMerchant();
         boolean isFact = isFactory();
-        if (!isMerch && isFact) w.eq(Purchase::getFactory_id_zj, userId);
+        if (!isMerch && isFact) w.eq(Purchase::getFactory_id_zj, getCurrentUserId());
         else if (!isMerch) throw new BusinessException("权限不足");
         w.orderByDesc(Purchase::getCreated_at_zj);
-        return Result.success(purchaseService.page(new Page<>(page, pageSize), w));
+        return Result.success(purchaseService.page(new Page<>(page, Math.min(pageSize, 100)), w));
     }
 
+    // 3. 详情
     @GetMapping("/{id}")
     public Result<PurchaseDetailResponse> detail(@PathVariable Long id) {
         Purchase p = purchaseService.getById(id);
@@ -104,83 +110,111 @@ public class PurchaseController {
         if (!isMerchant() && !p.getFactory_id_zj().equals(userId))
             throw new BusinessException("无权查看");
 
-        LambdaQueryWrapper<PurchaseItem> iw = new LambdaQueryWrapper<>();
-        iw.eq(PurchaseItem::getPurchase_id_zj, id);
-        List<PurchaseItem> items = itemService.list(iw);
+        List<PurchaseItem> items = itemService.list(
+            new LambdaQueryWrapper<PurchaseItem>().eq(PurchaseItem::getPurchase_id_zj, id));
         return Result.success(new PurchaseDetailResponse(p, items));
     }
 
+    // 4. 商户修改（仅pending状态，不含价格）
     @PutMapping("/{id}")
     @Transactional
     public Result<?> update(@PathVariable Long id, @RequestBody @Valid UpdatePurchaseRequest req) {
         if (!isMerchant()) throw new BusinessException("权限不足");
         Purchase p = purchaseService.getById(id);
         if (p == null) throw new BusinessException("采购单不存在");
-        if (!"pending".equals(p.getStatus_zj())) throw new BusinessException("仅pending状态可修改");
+        if (!"pending".equals(p.getStatus_zj())) throw new BusinessException("仅待报价状态可修改");
 
-        LambdaQueryWrapper<PurchaseItem> iw = new LambdaQueryWrapper<>();
-        iw.eq(PurchaseItem::getPurchase_id_zj, id);
-        itemService.remove(iw);
+        itemService.remove(new LambdaQueryWrapper<PurchaseItem>().eq(PurchaseItem::getPurchase_id_zj, id));
 
-        BigDecimal total = BigDecimal.ZERO;
         for (PurchaseItemRequest ir : req.getItems()) {
-            if (ir.getQuantity() <= 0) throw new BusinessException("数量必须大于0");
-            if (ir.getUnitPrice().compareTo(BigDecimal.ZERO) <= 0) throw new BusinessException("单价必须大于0");
-            BigDecimal subtotal = ir.getUnitPrice().multiply(new BigDecimal(ir.getQuantity()));
-            total = total.add(subtotal);
+            if (ir.getProductName() == null || ir.getProductName().isEmpty())
+                throw new BusinessException("商品名称不能为空");
+            if (ir.getQuantity() == null || ir.getQuantity() <= 0)
+                throw new BusinessException("数量必须大于0");
             PurchaseItem pi = new PurchaseItem();
             pi.setPurchase_id_zj(id);
             pi.setProduct_id_zj(ir.getProductId());
             pi.setProduct_name_zj(ir.getProductName());
             pi.setSpec_zj(ir.getSpec());
             pi.setQuantity_zj(ir.getQuantity());
-            pi.setUnit_price_zj(ir.getUnitPrice());
-            pi.setSubtotal_zj(subtotal);
+            pi.setUnit_price_zj(BigDecimal.ZERO);
+            pi.setSubtotal_zj(BigDecimal.ZERO);
             itemService.save(pi);
         }
-        p.setTotal_amount_zj(total);
         p.setUpdated_at_zj(LocalDateTime.now());
         purchaseService.updateById(p);
         return Result.success("修改成功", null);
     }
 
-    @PutMapping("/{id}/status")
+    // 5. 厂家报价（设置每条明细的单价）
+    @PutMapping("/{id}/quote")
     @Transactional
-    public Result<?> updateStatus(@PathVariable Long id, @RequestParam String status) {
+    public Result<?> quote(@PathVariable Long id, @RequestBody PurchaseQuoteRequest req) {
         Purchase p = purchaseService.getById(id);
         if (p == null) throw new BusinessException("采购单不存在");
+        if (!"pending".equals(p.getStatus_zj())) throw new BusinessException("当前状态不允许报价");
+        if (!p.getFactory_id_zj().equals(getCurrentUserId())) throw new BusinessException("无权操作");
 
-        String old = p.getStatus_zj();
-        Long userId = getCurrentUserId();
-        boolean valid = false;
+        if (req.getItems() == null || req.getItems().isEmpty()) throw new BusinessException("请至少填写一项报价");
 
-        if ("confirmed".equals(status) && "pending".equals(old) && p.getFactory_id_zj().equals(userId)) valid = true;
-        if ("shipped".equals(status) && "confirmed".equals(old) && p.getFactory_id_zj().equals(userId)) valid = true;
-        if ("cancelled".equals(status) && ("pending".equals(old) || "confirmed".equals(old)) && isMerchant()) valid = true;
+        BigDecimal total = BigDecimal.ZERO;
+        for (PurchaseQuoteItem item : req.getItems()) {
+            if (item.getItemId() == null) throw new BusinessException("明细ID不能为空");
+            if (item.getUnitPrice() == null || item.getUnitPrice().compareTo(BigDecimal.ZERO) <= 0)
+                throw new BusinessException("单价必须大于0");
 
-        if (!valid) throw new BusinessException("不允许此操作");
+            PurchaseItem pi = itemService.getById(item.getItemId());
+            if (pi == null || !pi.getPurchase_id_zj().equals(id))
+                throw new BusinessException("明细不存在或不属于此采购单");
 
-        p.setStatus_zj(status);
+            BigDecimal subtotal = item.getUnitPrice().multiply(new BigDecimal(pi.getQuantity_zj()));
+            pi.setUnit_price_zj(item.getUnitPrice());
+            pi.setSubtotal_zj(subtotal);
+            itemService.updateById(pi);
+            total = total.add(subtotal);
+        }
+
+        p.setTotal_amount_zj(total);
+        p.setStatus_zj("quoted");
         p.setUpdated_at_zj(LocalDateTime.now());
         purchaseService.updateById(p);
-        return Result.success("操作成功", null);
+        return Result.success("报价成功", null);
     }
 
-    @PutMapping("/{id}/logistics")
-    public Result<?> logistics(@PathVariable Long id, @RequestParam String expressCompany, @RequestParam String trackingNo) {
+    // 6. 商户确认付款
+    @PutMapping("/{id}/pay")
+    @Transactional
+    public Result<?> pay(@PathVariable Long id) {
+        if (!isMerchant()) throw new BusinessException("权限不足");
         Purchase p = purchaseService.getById(id);
         if (p == null) throw new BusinessException("采购单不存在");
-        if (!"confirmed".equals(p.getStatus_zj()) && !"shipped".equals(p.getStatus_zj()))
-            throw new BusinessException("当前状态不允许填写物流");
+        if (!"quoted".equals(p.getStatus_zj())) throw new BusinessException("当前状态不允许付款");
+
+        p.setStatus_zj("paid");
+        p.setUpdated_at_zj(LocalDateTime.now());
+        purchaseService.updateById(p);
+        return Result.success("已确认付款，等待厂家发货", null);
+    }
+
+    // 7. 厂家发货
+    @PutMapping("/{id}/logistics")
+    @Transactional
+    public Result<?> logistics(@PathVariable Long id,
+            @RequestParam String expressCompany, @RequestParam String trackingNo) {
+        Purchase p = purchaseService.getById(id);
+        if (p == null) throw new BusinessException("采购单不存在");
+        if (!"paid".equals(p.getStatus_zj())) throw new BusinessException("当前状态不允许发货");
         if (!p.getFactory_id_zj().equals(getCurrentUserId())) throw new BusinessException("无权操作");
 
         p.setExpress_company_zj(expressCompany);
         p.setTracking_no_zj(trackingNo);
+        p.setStatus_zj("shipped");
         p.setUpdated_at_zj(LocalDateTime.now());
         purchaseService.updateById(p);
-        return Result.success("物流信息填写成功", null);
+        return Result.success("发货成功", null);
     }
 
+    // 8. 商户收货（自动入库）
     @PutMapping("/{id}/received")
     @Transactional
     public Result<?> received(@PathVariable Long id) {
@@ -189,57 +223,59 @@ public class PurchaseController {
         if (p == null) throw new BusinessException("采购单不存在");
         if (!"shipped".equals(p.getStatus_zj())) throw new BusinessException("当前状态不允许收货");
 
-        LambdaQueryWrapper<PurchaseItem> iw = new LambdaQueryWrapper<>();
-        iw.eq(PurchaseItem::getPurchase_id_zj, id);
-        List<PurchaseItem> items = itemService.list(iw);
+        List<PurchaseItem> items = itemService.list(
+            new LambdaQueryWrapper<PurchaseItem>().eq(PurchaseItem::getPurchase_id_zj, id));
         for (PurchaseItem pi : items) {
-            if (pi.getProduct_id_zj() == null) throw new BusinessException("明细[" + pi.getProduct_name_zj() + "]未关联商品，无法入库");
-            LambdaUpdateWrapper<Product> pw = new LambdaUpdateWrapper<>();
-            pw.eq(Product::getId_zj, pi.getProduct_id_zj())
-              .setSql("stock_zj = stock_zj + {0}", pi.getQuantity_zj());
-            productService.update(pw);
+            if (pi.getProduct_id_zj() != null && pi.getProduct_id_zj() > 0) {
+                Product product = productService.getById(pi.getProduct_id_zj());
+                if (product != null) {
+                    product.setStock_zj(product.getStock_zj() + pi.getQuantity_zj());
+                    product.setUpdated_at_zj(LocalDateTime.now());
+                    productService.updateById(product);
 
-            Product updated = productService.getById(pi.getProduct_id_zj());
-            if (updated == null) throw new BusinessException("商品[" + pi.getProduct_name_zj() + "]已被删除，无法入库");
-            StockLog sl = new StockLog();
-            sl.setProduct_id_zj(pi.getProduct_id_zj());
-            sl.setChange_quantity_zj(pi.getQuantity_zj());
-            sl.setCurrent_stock_zj(updated.getStock_zj());
-            sl.setType_zj("purchase_in");
-            sl.setReference_id_zj(id);
-            sl.setRemark_zj("采购入库");
-            sl.setCreated_at_zj(LocalDateTime.now());
-            stockLogService.save(sl);
+                    StockLog sl = new StockLog();
+                    sl.setProduct_id_zj(pi.getProduct_id_zj());
+                    sl.setChange_quantity_zj(pi.getQuantity_zj());
+                    sl.setCurrent_stock_zj(product.getStock_zj());
+                    sl.setType_zj("purchase_in");
+                    sl.setReference_id_zj(id);
+                    sl.setRemark_zj("采购入库");
+                    sl.setCreated_at_zj(LocalDateTime.now());
+                    stockLogService.save(sl);
+                }
+            }
         }
 
+        p.setStatus_zj("received");
         p.setUpdated_at_zj(LocalDateTime.now());
-        LambdaUpdateWrapper<Purchase> pw2 = new LambdaUpdateWrapper<>();
-        pw2.eq(Purchase::getId_zj, id).eq(Purchase::getStatus_zj, "shipped")
-           .set(Purchase::getStatus_zj, "received")
-           .set(Purchase::getUpdated_at_zj, LocalDateTime.now());
-        if (!purchaseService.update(pw2)) throw new BusinessException("收货失败，采购单状态已变更");
+        purchaseService.updateById(p);
         return Result.success("收货入库成功", null);
     }
 
-    private boolean isMerchant() {
-        Authentication a = SecurityContextHolder.getContext().getAuthentication();
-        if (a == null || !a.isAuthenticated()) return false;
-        for (GrantedAuthority g : a.getAuthorities()) {
-            if ("ROLE_MERCHANT".equals(g.getAuthority())) return true;
+    // 9. 取消（pending 商户可取消，quoted 厂家可取消）
+    @PutMapping("/{id}/cancel")
+    @Transactional
+    public Result<?> cancel(@PathVariable Long id) {
+        Purchase p = purchaseService.getById(id);
+        if (p == null) throw new BusinessException("采购单不存在");
+        String status = p.getStatus_zj();
+        Long userId = getCurrentUserId();
+
+        if ("pending".equals(status) && isMerchant()) {
+            // ok
+        } else if ("quoted".equals(status) && p.getFactory_id_zj().equals(userId)) {
+            // ok
+        } else {
+            throw new BusinessException("无权取消此采购单");
         }
-        return false;
+
+        p.setStatus_zj("cancelled");
+        p.setUpdated_at_zj(LocalDateTime.now());
+        purchaseService.updateById(p);
+        return Result.success("已取消", null);
     }
 
-    private boolean isFactory() {
-        Authentication a = SecurityContextHolder.getContext().getAuthentication();
-        if (a == null || !a.isAuthenticated()) return false;
-        for (GrantedAuthority g : a.getAuthorities()) {
-            if ("ROLE_FACTORY".equals(g.getAuthority())) return true;
-        }
-        return false;
-    }
-
-    private Long getCurrentUserId() {
-        return (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-    }
+    private boolean isMerchant() { return AuthUtils.isMerchant(); }
+    private boolean isFactory() { return AuthUtils.isFactory(); }
+    private Long getCurrentUserId() { return AuthUtils.getCurrentUserId(); }
 }

@@ -1,5 +1,6 @@
 package com.rubber.shop.controller;
 
+import com.rubber.shop.common.AuthUtils;
 import com.rubber.shop.common.BusinessException;
 import com.rubber.shop.common.Result;
 import com.rubber.shop.config.JwtUtil;
@@ -10,8 +11,10 @@ import com.rubber.shop.dto.RegisterRequest;
 import com.rubber.shop.entity.User;
 import com.rubber.shop.service.UserService;
 import jakarta.validation.Valid;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -43,7 +46,11 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @Transactional
     public Result<?> register(@RequestBody @Valid RegisterRequest req) {
+        if (req.getPassword() == null || req.getPassword().length() < 6) {
+            throw new BusinessException("密码长度不能少于6位");
+        }
         User existUser = userService.getByPhone(req.getPhone());
         if (existUser != null) {
             throw new BusinessException("该手机号已注册");
@@ -65,8 +72,15 @@ public class AuthController {
     }
 
     @PutMapping("/password")
+    @Transactional
     public Result<?> changePassword(@RequestBody @Valid PasswordUpdateRequest req) {
-        Long userId = (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Long userId = getCurrentUserId();
+        if (req.getNewPassword() == null || req.getNewPassword().length() < 6) {
+            throw new BusinessException("新密码长度不能少于6位");
+        }
+        if (req.getOldPassword().equals(req.getNewPassword())) {
+            throw new BusinessException("新密码不能与旧密码相同");
+        }
         User user = userService.getById(userId);
         if (user == null) {
             throw new BusinessException("用户不存在");
@@ -78,5 +92,9 @@ public class AuthController {
         user.setUpdated_at_zj(java.time.LocalDateTime.now());
         userService.updateById(user);
         return Result.success("密码修改成功", null);
+    }
+
+    private Long getCurrentUserId() {
+        return AuthUtils.getCurrentUserId();
     }
 }

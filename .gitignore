@@ -25,3 +25,14 @@ $RECYCLE.BIN/
 # Upload files (keep dir structure, ignore actual files)
 uploads/*
 !uploads/.gitkeep
+
+# Node.js
+node_modules/
+dist/
+
+# Android
+.gradle/
+build/
+local.properties
+*.apk
+*.aab

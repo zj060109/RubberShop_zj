@@ -14,4 +14,6 @@ public class RepaymentRequest {
 
     @NotBlank(message = "还款方式不能为空")
     private String paymentMethod;
+
+    private String remark;
 }

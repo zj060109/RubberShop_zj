@@ -58,6 +58,27 @@ public class Order {
     @TableField("tracking_no_zj")
     private String tracking_no_zj;
 
+    @TableField("need_installation_zj")
+    private Integer need_installation_zj;
+
+    @TableField("customer_express_company_zj")
+    private String customer_express_company_zj;
+
+    @TableField("customer_tracking_no_zj")
+    private String customer_tracking_no_zj;
+
+    @TableField("installation_video_zj")
+    private String installation_video_zj;
+
+    @TableField("installation_images_zj")
+    private String installation_images_zj;
+
+    @TableField("installation_remark_zj")
+    private String installation_remark_zj;
+
+    @TableField("installation_completed_at_zj")
+    private LocalDateTime installation_completed_at_zj;
+
     @TableField("mark_zj")
     private String mark_zj;
 

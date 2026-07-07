@@ -8,6 +8,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @TableName("customization_zj")
@@ -39,4 +40,7 @@ public class Customization {
 
     @TableField("updated_at_zj")
     private LocalDateTime updated_at_zj;
+
+    @TableField(exist = false)
+    private List<CustomizationItem> items;
 }

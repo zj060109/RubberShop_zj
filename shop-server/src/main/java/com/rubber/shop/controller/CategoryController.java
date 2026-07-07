@@ -10,6 +10,7 @@ import com.rubber.shop.entity.Product;
 import com.rubber.shop.service.CategoryService;
 import com.rubber.shop.service.ProductService;
 import jakarta.validation.Valid;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -57,6 +58,7 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
+    @Transactional
     public Result<?> update(@PathVariable Long id, @RequestBody @Valid CategoryRequest req) {
         Category exist = categoryService.getById(id);
         if (exist == null) {
@@ -77,6 +79,7 @@ public class CategoryController {
     }
 
     @DeleteMapping("/{id}")
+    @Transactional
     public Result<?> delete(@PathVariable Long id) {
         if (categoryService.getById(id) == null) {
             throw new BusinessException("分类不存在");
@@ -97,11 +100,11 @@ public class CategoryController {
 
     private CategoryTreeResponse buildTree(Category category, Map<Long, List<Category>> childrenMap) {
         CategoryTreeResponse node = new CategoryTreeResponse();
-        node.setId(category.getId_zj());
-        node.setName(category.getName_zj());
-        node.setParentId(category.getParent_id_zj());
-        node.setSort(category.getSort_zj());
-        node.setIcon(category.getIcon_zj());
+        node.setId_zj(category.getId_zj());
+        node.setName_zj(category.getName_zj());
+        node.setParent_id_zj(category.getParent_id_zj());
+        node.setSort_zj(category.getSort_zj());
+        node.setIcon_zj(category.getIcon_zj());
 
         List<Category> children = childrenMap.get(category.getId_zj());
         if (children != null) {

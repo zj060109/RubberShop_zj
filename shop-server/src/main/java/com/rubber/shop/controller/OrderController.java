@@ -3,6 +3,7 @@ package com.rubber.shop.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.rubber.shop.common.AuthUtils;
 import com.rubber.shop.common.BusinessException;
 import com.rubber.shop.common.Result;
 import com.rubber.shop.dto.OrderCreateRequest;
@@ -37,12 +38,14 @@ public class OrderController {
     private final BalanceLogService balanceLogService;
     private final StockLogService stockLogService;
     private final ReceivableService receivableService;
+    private final IdentityVerificationService identityVerificationService;
     private final ObjectMapper objectMapper;
 
     public OrderController(OrderService orderService, OrderItemService orderItemService,
             OrderStatusLogService orderStatusLogService, ProductService productService,
             UserService userService, BalanceLogService balanceLogService,
             StockLogService stockLogService, ReceivableService receivableService,
+            IdentityVerificationService identityVerificationService,
             ObjectMapper objectMapper) {
         this.orderService = orderService;
         this.orderItemService = orderItemService;
@@ -52,12 +55,14 @@ public class OrderController {
         this.balanceLogService = balanceLogService;
         this.stockLogService = stockLogService;
         this.receivableService = receivableService;
+        this.identityVerificationService = identityVerificationService;
         this.objectMapper = objectMapper;
     }
 
     @PostMapping
     @Transactional
     public Result<Order> create(@RequestBody @Valid OrderCreateRequest req) {
+        if (req.getNeedInstallation() == null) req.setNeedInstallation(0);
         Long userId = getCurrentUserId();
         User user = userService.getById(userId);
         if (user == null) throw new BusinessException("用户不存在");
@@ -70,20 +75,25 @@ public class OrderController {
         List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
 
+        List<Long> productIds = req.getItems().stream().map(OrderItemRequest::getProductId).distinct().toList();
+        List<Product> products = productService.listByIds(productIds);
+        java.util.Map<Long, Product> productMap = new java.util.HashMap<>();
+        for (Product p : products) productMap.put(p.getId_zj(), p);
+        
         for (OrderItemRequest itemReq : req.getItems()) {
-            Product product = productService.getById(itemReq.getProductId());
-            if (product == null) throw new BusinessException("商品不存在");
-            if (!"on".equals(product.getStatus_zj())) throw new BusinessException("商品[" + product.getName_zj() + "]已下架");
-            if (product.getStock_zj() < itemReq.getQuantity()) throw new BusinessException("商品[" + product.getName_zj() + "]库存不足");
+            Product p = productMap.get(itemReq.getProductId());
+            if (p == null) throw new BusinessException("商品(ID:" + itemReq.getProductId() + ")不存在");
+            if (!"on".equals(p.getStatus_zj())) throw new BusinessException("商品「" + p.getName_zj() + "」已下架");
+            if (p.getStock_zj() < itemReq.getQuantity()) throw new BusinessException("商品[" + p.getName_zj() + "]库存不足");
 
-            BigDecimal subtotal = product.getPrice_zj().multiply(new BigDecimal(itemReq.getQuantity()));
+            BigDecimal subtotal = p.getPrice_zj().multiply(new BigDecimal(itemReq.getQuantity()));
             totalAmount = totalAmount.add(subtotal);
 
             OrderItem oi = new OrderItem();
-            oi.setProduct_id_zj(product.getId_zj());
-            oi.setProduct_name_zj(product.getName_zj());
-            oi.setProduct_image_zj(extractFirstImage(product.getImages_zj()));
-            oi.setPrice_zj(product.getPrice_zj());
+            oi.setProduct_id_zj(p.getId_zj());
+            oi.setProduct_name_zj(p.getName_zj());
+            oi.setProduct_image_zj(extractFirstImage(p.getImages_zj()));
+            oi.setPrice_zj(p.getPrice_zj());
             oi.setQuantity_zj(itemReq.getQuantity());
             oi.setSubtotal_zj(subtotal);
             orderItems.add(oi);
@@ -95,6 +105,7 @@ public class OrderController {
         order.setTotal_amount_zj(totalAmount);
         order.setActual_amount_zj(totalAmount);
         order.setPayment_method_zj(paymentMethod);
+        order.setNeed_installation_zj(req.getNeedInstallation());
         order.setStatus_zj("paid");
         order.setPaid_at_zj(LocalDateTime.now());
         order.setCreated_at_zj(LocalDateTime.now());
@@ -147,6 +158,18 @@ public class OrderController {
             bl.setCreated_at_zj(LocalDateTime.now());
             balanceLogService.save(bl);
         } else {
+            if (user.getPoints_zj() == null || user.getPoints_zj() < 10) {
+                throw new BusinessException("积分不足（需满10积分），无法使用赊账");
+            }
+            if (user.getCredit_limit_zj() == null || user.getCredit_limit_zj().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new BusinessException("赊账功能未解锁，请先达到10积分");
+            }
+            LambdaQueryWrapper<IdentityVerification> ivw = new LambdaQueryWrapper<>();
+            ivw.eq(IdentityVerification::getUser_id_zj, userId)
+               .eq(IdentityVerification::getStatus_zj, 1);
+            if (identityVerificationService.count(ivw) == 0) {
+                throw new BusinessException("未完成实名认证，无法使用赊账");
+            }
             BigDecimal unpaidTotal = getUnpaidReceivableTotal(userId);
             BigDecimal availableCredit = user.getCredit_limit_zj().subtract(unpaidTotal);
             if (availableCredit.compareTo(totalAmount) < 0) {
@@ -160,6 +183,22 @@ public class OrderController {
             r.setStatus_zj("unpaid");
             r.setCreated_at_zj(LocalDateTime.now());
             receivableService.save(r);
+        }
+
+        if ("customer".equals(user.getRole_zj())) {
+            LambdaUpdateWrapper<User> pointsWrapper = new LambdaUpdateWrapper<>();
+            pointsWrapper.eq(User::getId_zj, userId)
+                .setSql("points_zj = points_zj + 1");
+            userService.update(pointsWrapper);
+
+            User afterPoints = userService.getById(userId);
+            if (afterPoints.getPoints_zj() != null && afterPoints.getPoints_zj() >= 10
+                    && (afterPoints.getCredit_limit_zj() == null || afterPoints.getCredit_limit_zj().compareTo(BigDecimal.ZERO) <= 0)) {
+                LambdaUpdateWrapper<User> creditWrapper = new LambdaUpdateWrapper<>();
+                creditWrapper.eq(User::getId_zj, userId)
+                    .set(User::getCredit_limit_zj, new BigDecimal("5000.00"));
+                userService.update(creditWrapper);
+            }
         }
 
         OrderStatusLog sl = new OrderStatusLog();
@@ -176,11 +215,15 @@ public class OrderController {
     @GetMapping
     public Result<Page<Order>> list(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int pageSize) {
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String status) {
         Long userId = getCurrentUserId();
         LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<>();
-        if (!isAdmin()) {
+        if (!isMerchant()) {
             wrapper.eq(Order::getUser_id_zj, userId);
+        }
+        if (status != null && !status.isEmpty()) {
+            wrapper.eq(Order::getStatus_zj, status);
         }
         wrapper.orderByDesc(Order::getCreated_at_zj);
         return Result.success(orderService.page(new Page<>(page, pageSize), wrapper));
@@ -192,7 +235,7 @@ public class OrderController {
         if (order == null) throw new BusinessException("订单不存在");
 
         Long userId = getCurrentUserId();
-        if (!isAdmin() && !order.getUser_id_zj().equals(userId)) {
+        if (!isMerchant() && !order.getUser_id_zj().equals(userId)) {
             throw new BusinessException("无权查看该订单");
         }
 
@@ -210,7 +253,7 @@ public class OrderController {
     @PutMapping("/{id}/status")
     @Transactional
     public Result<?> updateStatus(@PathVariable Long id, @RequestParam String status) {
-        if (!isAdmin()) throw new BusinessException("权限不足");
+        if (!isMerchant()) throw new BusinessException("权限不足");
         Order order = orderService.getById(id);
         if (order == null) throw new BusinessException("订单不存在");
 
@@ -239,12 +282,12 @@ public class OrderController {
     @PutMapping("/{id}/ship")
     @Transactional
     public Result<?> ship(@PathVariable Long id, @RequestParam String expressCompany, @RequestParam String trackingNo) {
-        if (!isAdmin()) throw new BusinessException("权限不足");
+        if (!isMerchant()) throw new BusinessException("权限不足");
         Order order = orderService.getById(id);
         if (order == null) throw new BusinessException("订单不存在");
 
         String oldStatus = order.getStatus_zj();
-        if (!"paid".equals(oldStatus) && !"accepted".equals(oldStatus)) {
+        if (!"paid".equals(oldStatus) && !"accepted".equals(oldStatus) && !"installed".equals(oldStatus)) {
             throw new BusinessException("当前状态不允许发货");
         }
 
@@ -274,7 +317,7 @@ public class OrderController {
         if (order == null) throw new BusinessException("订单不存在");
 
         Long userId = getCurrentUserId();
-        if (!isAdmin() && !order.getUser_id_zj().equals(userId)) {
+        if (!isMerchant() && !order.getUser_id_zj().equals(userId)) {
             throw new BusinessException("无权操作该订单");
         }
 
@@ -306,12 +349,12 @@ public class OrderController {
         if (order == null) throw new BusinessException("订单不存在");
 
         String status = order.getStatus_zj();
-        if (!"paid".equals(status) && !"accepted".equals(status)) {
+        if (!"paid".equals(status) && !"accepted".equals(status) && !"shipped_to_merchant".equals(status)) {
             throw new BusinessException("当前订单状态不允许取消");
         }
 
         Long userId = getCurrentUserId();
-        if (!isAdmin() && !order.getUser_id_zj().equals(userId)) {
+        if (!isMerchant() && !order.getUser_id_zj().equals(userId)) {
             throw new BusinessException("无权取消该订单");
         }
 
@@ -409,6 +452,174 @@ public class OrderController {
         return Result.success("取消成功，已退款", null);
     }
 
+    @PutMapping("/{id}/customer-ship")
+    @Transactional
+    public Result<?> customerShip(@PathVariable Long id,
+                                   @RequestParam String expressCompany,
+                                   @RequestParam String trackingNo) {
+        Order order = orderService.getById(id);
+        if (order == null) throw new BusinessException("订单不存在");
+
+        Long userId = getCurrentUserId();
+        if (!order.getUser_id_zj().equals(userId)) {
+            throw new BusinessException("无权操作该订单");
+        }
+
+        if (!"paid".equals(order.getStatus_zj())) {
+            throw new BusinessException("当前状态不允许寄送");
+        }
+        if (order.getNeed_installation_zj() == null || order.getNeed_installation_zj().intValue() != 1) {
+            throw new BusinessException("该订单不需要代安装服务");
+        }
+
+        String oldStatus = order.getStatus_zj();
+        order.setStatus_zj("shipped_to_merchant");
+        order.setCustomer_express_company_zj(expressCompany);
+        order.setCustomer_tracking_no_zj(trackingNo);
+        order.setUpdated_at_zj(LocalDateTime.now());
+        orderService.updateById(order);
+
+        OrderStatusLog log = new OrderStatusLog();
+        log.setOrder_id_zj(id);
+        log.setFrom_status_zj(oldStatus);
+        log.setTo_status_zj("shipped_to_merchant");
+        log.setOperator_id_zj(userId);
+        log.setRemark_zj("顾客寄送商品至商户：" + expressCompany + " " + trackingNo);
+        log.setCreated_at_zj(LocalDateTime.now());
+        orderStatusLogService.save(log);
+
+        return Result.success("已登记寄送信息，等待商户收货", null);
+    }
+
+    @PutMapping("/{id}/merchant-receive")
+    @Transactional
+    public Result<?> merchantReceive(@PathVariable Long id) {
+        if (!isMerchant()) throw new BusinessException("权限不足");
+        Order order = orderService.getById(id);
+        if (order == null) throw new BusinessException("订单不存在");
+
+        if (!"shipped_to_merchant".equals(order.getStatus_zj())) {
+            throw new BusinessException("当前状态不允许收货");
+        }
+
+        String oldStatus = order.getStatus_zj();
+        order.setStatus_zj("installing");
+        order.setUpdated_at_zj(LocalDateTime.now());
+        orderService.updateById(order);
+
+        OrderStatusLog log = new OrderStatusLog();
+        log.setOrder_id_zj(id);
+        log.setFrom_status_zj(oldStatus);
+        log.setTo_status_zj("installing");
+        log.setOperator_id_zj(getCurrentUserId());
+        log.setRemark_zj("商户已收到顾客寄送的商品，开始安装");
+        log.setCreated_at_zj(LocalDateTime.now());
+        orderStatusLogService.save(log);
+
+        return Result.success("已收货，进入待安装状态", null);
+    }
+
+    @PutMapping("/{id}/installation")
+    @Transactional
+    public Result<?> updateInstallation(@PathVariable Long id,
+                                         @RequestParam(required = false) String video,
+                                         @RequestParam(required = false) String images,
+                                         @RequestParam(required = false) String remark,
+                                         @RequestParam(required = false) String status) {
+        if (!isMerchant()) throw new BusinessException("权限不足");
+        Order order = orderService.getById(id);
+        if (order == null) throw new BusinessException("订单不存在");
+
+        if (!"installing".equals(order.getStatus_zj())) {
+            throw new BusinessException("当前状态不允许操作安装");
+        }
+
+        boolean changed = false;
+        if (video != null) { order.setInstallation_video_zj(video); changed = true; }
+        if (images != null) { order.setInstallation_images_zj(images); changed = true; }
+        if (remark != null) { order.setInstallation_remark_zj(remark); changed = true; }
+
+        String oldStatus = order.getStatus_zj();
+        if ("completed".equals(status)) {
+            order.setStatus_zj("installed");
+            order.setInstallation_completed_at_zj(LocalDateTime.now());
+            changed = true;
+
+            OrderStatusLog log = new OrderStatusLog();
+            log.setOrder_id_zj(id);
+            log.setFrom_status_zj(oldStatus);
+            log.setTo_status_zj("installed");
+            log.setOperator_id_zj(getCurrentUserId());
+            log.setRemark_zj("安装完成" + (remark != null ? "：" + remark : ""));
+            log.setCreated_at_zj(LocalDateTime.now());
+            orderStatusLogService.save(log);
+        }
+
+        if (changed) {
+            order.setUpdated_at_zj(LocalDateTime.now());
+            orderService.updateById(order);
+        }
+
+        return Result.success("安装状态更新成功", null);
+    }
+
+    @GetMapping("/{id}/installation")
+    public Result<?> getInstallation(@PathVariable Long id) {
+        Order order = orderService.getById(id);
+        if (order == null) throw new BusinessException("订单不存在");
+
+        Long userId = getCurrentUserId();
+        if (!isMerchant() && !order.getUser_id_zj().equals(userId)) {
+            throw new BusinessException("无权查看");
+        }
+
+        java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("needInstallation", order.getNeed_installation_zj());
+        result.put("status", order.getStatus_zj());
+        result.put("customerExpressCompany", order.getCustomer_express_company_zj());
+        result.put("customerTrackingNo", order.getCustomer_tracking_no_zj());
+        result.put("video", order.getInstallation_video_zj());
+        result.put("images", order.getInstallation_images_zj());
+        result.put("remark", order.getInstallation_remark_zj());
+        result.put("completedAt", order.getInstallation_completed_at_zj());
+        return Result.success(result);
+    }
+
+    @GetMapping("/merchant-address")
+    public Result<?> getMerchantAddress() {
+        User merchant = userService.getById(1L);
+        if (merchant == null) throw new BusinessException("商户不存在");
+
+        java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
+        map.put("receiverName", merchant.getMch_receiver_name_zj());
+        map.put("receiverPhone", merchant.getMch_receiver_phone_zj());
+        map.put("province", merchant.getMch_province_zj());
+        map.put("city", merchant.getMch_city_zj());
+        map.put("district", merchant.getMch_district_zj());
+        map.put("detailAddress", merchant.getMch_detail_address_zj());
+        return Result.success(map);
+    }
+
+    @PutMapping("/merchant-address")
+    @Transactional
+    public Result<?> updateMerchantAddress(@RequestBody java.util.Map<String, String> body) {
+        if (!isMerchant()) throw new BusinessException("权限不足");
+
+        User user = userService.getById(getCurrentUserId());
+        LambdaUpdateWrapper<User> uw = new LambdaUpdateWrapper<>();
+        uw.eq(User::getId_zj, user.getId_zj());
+        if (body.containsKey("receiverName")) uw.set(User::getMch_receiver_name_zj, body.get("receiverName"));
+        if (body.containsKey("receiverPhone")) uw.set(User::getMch_receiver_phone_zj, body.get("receiverPhone"));
+        if (body.containsKey("province")) uw.set(User::getMch_province_zj, body.get("province"));
+        if (body.containsKey("city")) uw.set(User::getMch_city_zj, body.get("city"));
+        if (body.containsKey("district")) uw.set(User::getMch_district_zj, body.get("district"));
+        if (body.containsKey("detailAddress")) uw.set(User::getMch_detail_address_zj, body.get("detailAddress"));
+        uw.set(User::getUpdated_at_zj, LocalDateTime.now());
+        userService.update(uw);
+
+        return Result.success("商户地址更新成功", null);
+    }
+
     private void setAddress(Order order, User user, OrderCreateRequest req) {
         String name = req.getReceiverName() != null ? req.getReceiverName() : user.getDefault_receiver_name_zj();
         String phone = req.getReceiverPhone() != null ? req.getReceiverPhone() : user.getDefault_receiver_phone_zj();
@@ -448,18 +659,12 @@ public class OrderController {
                 + ThreadLocalRandom.current().nextInt(100, 999);
     }
 
-    private boolean isAdmin() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) return false;
-        for (GrantedAuthority a : auth.getAuthorities()) {
-            String r = a.getAuthority();
-            if ("ROLE_MERCHANT".equals(r)) return true;
-        }
-        return false;
+    private boolean isMerchant() {
+        return AuthUtils.isMerchant();
     }
 
     private Long getCurrentUserId() {
-        return (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return AuthUtils.getCurrentUserId();
     }
 
     private String extractFirstImage(String imagesJson) {
@@ -469,6 +674,7 @@ public class OrderController {
                     .constructCollectionType(java.util.List.class, String.class));
             return list.isEmpty() ? null : list.get(0);
         } catch (Exception e) {
+            System.err.println("extractFirstImage failed: " + e.getMessage());
             return null;
         }
     }
