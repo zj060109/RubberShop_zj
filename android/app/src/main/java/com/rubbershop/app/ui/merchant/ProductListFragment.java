@@ -56,10 +56,7 @@ public class ProductListFragment extends Fragment {
         rvProducts.setLayoutManager(new GridLayoutManager(getContext(), 2));
         rvProducts.setAdapter(productAdapter);
 
-        categoryAdapter = new CategoryAdapter(c -> {
-            categoryId = c != null ? c.getId() : null;
-            loadProducts(true);
-        });
+        categoryAdapter = new CategoryAdapter();
         rvCategories.setLayoutManager(new LinearLayoutManager(getContext(), RecyclerView.HORIZONTAL, false));
         rvCategories.setAdapter(categoryAdapter);
 

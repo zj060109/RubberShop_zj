@@ -151,15 +151,17 @@ public class Models {
     }
 
     public static class CategoryTree {
-        @SerializedName("id_zj") private Long id;
-        @SerializedName("name_zj") private String name;
-        @SerializedName("parent_id_zj") private Long parentId;
-        @SerializedName("sort_zj") private Integer sort;
+        @SerializedName("id") private Long id;
+        @SerializedName("name") private String name;
+        @SerializedName("parentId") private Long parentId;
+        @SerializedName("sort") private Integer sort;
+        @SerializedName("icon") private String icon;
         private List<CategoryTree> children;
         public Long getId() { return id; }
         public String getName() { return name; }
         public Long getParentId() { return parentId; }
         public Integer getSort() { return sort; }
+        public String getIcon() { return icon; }
         public List<CategoryTree> getChildren() { return children; }
     }
 
