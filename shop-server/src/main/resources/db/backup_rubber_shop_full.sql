@@ -24,6 +24,37 @@ CREATE DATABASE /*!32312 IF NOT EXISTS*/ `db_rubber_shop_zj_2024` /*!40100 DEFAU
 USE `db_rubber_shop_zj_2024`;
 
 --
+-- Table structure for table `balance_log_zj`
+--
+
+DROP TABLE IF EXISTS `balance_log_zj`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `balance_log_zj` (
+  `id_zj` bigint NOT NULL AUTO_INCREMENT COMMENT '??',
+  `user_id_zj` bigint NOT NULL COMMENT '??ID',
+  `change_amount_zj` decimal(10,2) NOT NULL COMMENT '????',
+  `current_balance_zj` decimal(10,2) NOT NULL COMMENT '?????',
+  `type_zj` enum('recharge','consume','repay','refund','withdraw','admin_adjust') NOT NULL COMMENT '????',
+  `reference_id_zj` bigint DEFAULT NULL COMMENT '????/??ID',
+  `remark_zj` varchar(200) DEFAULT NULL COMMENT '??',
+  `created_at_zj` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '????',
+  PRIMARY KEY (`id_zj`),
+  KEY `idx_balance_user` (`user_id_zj`)
+) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='??????';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `balance_log_zj`
+--
+
+LOCK TABLES `balance_log_zj` WRITE;
+/*!40000 ALTER TABLE `balance_log_zj` DISABLE KEYS */;
+INSERT INTO `balance_log_zj` VALUES (16,1,1000.00,1000.00,'recharge',NULL,'余额充值','2026-06-25 00:15:13'),(17,1,-125.00,875.00,'consume',14,'订单支付','2026-06-25 00:15:28'),(18,1,125.00,1000.00,'refund',14,'订单退款','2026-06-25 00:15:40'),(19,13,1000.00,1000.00,'recharge',NULL,'余额充值','2026-06-25 09:02:58'),(20,13,1.00,1001.00,'recharge',NULL,'余额充值','2026-06-25 09:04:51'),(21,13,288888.00,289889.00,'recharge',NULL,'余额充值','2026-06-25 09:07:21'),(22,13,-289889.00,0.00,'admin_adjust',NULL,'管理员调整','2026-06-25 09:13:50'),(23,1,-1000.00,0.00,'admin_adjust',NULL,'管理员调整','2026-06-25 09:14:14'),(24,2,-50.00,0.00,'admin_adjust',NULL,'管理员调整','2026-06-25 09:14:22'),(25,17,1000.00,1000.00,'recharge',NULL,'余额充值','2026-06-25 17:29:08'),(26,17,-199.98,800.02,'consume',16,'订单支付','2026-06-25 17:29:09'),(27,18,500.00,500.00,'recharge',NULL,'余额充值','2026-06-25 17:30:01'),(28,18,-10.00,490.00,'consume',18,'订单支付','2026-06-25 17:30:01'),(29,18,10.00,500.00,'refund',18,'订单退款','2026-06-25 17:30:01'),(30,1,200.00,200.00,'admin_adjust',NULL,'管理员调整','2026-06-25 17:37:25'),(31,13,2000.00,2000.00,'admin_adjust',NULL,'管理员调整','2026-06-26 08:56:07'),(32,13,-132.00,1868.00,'consume',22,'订单支付','2026-06-26 08:56:16'),(33,13,-25.00,1843.00,'consume',23,'订单支付','2026-06-26 08:56:30'),(34,13,-25.00,1818.00,'consume',24,'订单支付','2026-06-26 08:57:50'),(35,13,-25.00,1793.00,'consume',25,'订单支付','2026-06-26 08:58:17'),(36,13,-25.00,1768.00,'consume',26,'订单支付','2026-06-26 08:58:44'),(37,13,-175.00,1593.00,'consume',27,'订单支付','2026-06-26 10:25:30'),(38,13,-895.95,697.05,'consume',28,'订单支付','2026-06-26 10:38:06'),(39,13,895.95,1593.00,'refund',28,'订单退款','2026-06-26 10:39:07');
+/*!40000 ALTER TABLE `balance_log_zj` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `category_zj`
 --
 
@@ -177,6 +208,36 @@ LOCK TABLES `customization_zj` WRITE;
 /*!40000 ALTER TABLE `customization_zj` DISABLE KEYS */;
 INSERT INTO `customization_zj` VALUES (7,13,'cancelled','密封圈\n规格要求：内径30外径45\n预估数量：1000\n样品图：/uploads/2fbed54a-ae55-474b-9dd8-7fbcdf1426cc.jpg',NULL,NULL,NULL,'2026-06-25 09:35:41','2026-06-25 14:37:46'),(8,13,'cancelled','111\n规格要求：111\n预估数量：100\n样品图：/uploads/3fcb103e-4f68-4446-82c6-3276d9f5e5c4.jpg ',NULL,NULL,NULL,'2026-06-25 11:25:08','2026-06-25 14:36:56'),(9,13,'cancelled','密封圈\n规格要求：外径5内径5\n预估数量：100\n样品图：/uploads/9f32b748-0acb-4d95-9fc7-49207e355a79.jpg /uploads/4daa2098-30f5-46ac-817c-4d73dca334d7.jpg ',NULL,500.00,NULL,'2026-06-25 14:38:37','2026-06-25 15:25:43'),(10,17,'quoted','test credit check',NULL,10.00,NULL,'2026-06-25 17:30:01','2026-06-25 17:30:01');
 /*!40000 ALTER TABLE `customization_zj` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `identity_verification_zj`
+--
+
+DROP TABLE IF EXISTS `identity_verification_zj`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `identity_verification_zj` (
+  `id_zj` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `user_id_zj` bigint NOT NULL COMMENT '用户ID',
+  `id_card_zj` varchar(18) NOT NULL COMMENT '身份证号',
+  `real_name_zj` varchar(50) NOT NULL COMMENT '真实姓名',
+  `face_image_zj` varchar(500) DEFAULT NULL COMMENT '人脸照片URL',
+  `status_zj` tinyint(1) NOT NULL DEFAULT '1' COMMENT '1-已认证 0-已失效',
+  `created_at_zj` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '认证时间',
+  `updated_at_zj` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id_zj`),
+  UNIQUE KEY `uk_verify_user` (`user_id_zj`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='实名认证表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `identity_verification_zj`
+--
+
+LOCK TABLES `identity_verification_zj` WRITE;
+/*!40000 ALTER TABLE `identity_verification_zj` DISABLE KEYS */;
+/*!40000 ALTER TABLE `identity_verification_zj` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -582,4 +643,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-06 15:29:21
+-- Dump completed on 2026-09-06 15:39:53
