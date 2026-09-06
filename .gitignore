@@ -12,6 +12,7 @@ NVIDIA Corporation/
 *.war
 target/
 *.log
+!android/gradle/wrapper/gradle-wrapper.jar
 
 # Maven
 .mvn/
