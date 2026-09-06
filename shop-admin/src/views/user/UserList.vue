@@ -1,26 +1,24 @@
 <template>
   <div class="page">
-    <el-card class="toolbar-card">
-      <div class="toolbar">
-        <div class="toolbar-left">
-          <el-input v-model="phone" placeholder="搜索手机号" clearable class="input-field" @keyup.enter="search" />
-          <el-select v-model="roleFilter" placeholder="角色筛选" clearable class="select-field" @change="search">
-            <el-option label="客户" value="customer" />
-            <el-option label="商户" value="merchant" />
-            <el-option label="工厂" value="factory" />
-          </el-select>
-          <el-button type="primary" class="search-btn" @click="search">搜索</el-button>
-        </div>
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <el-input v-model="phone" placeholder="搜索手机号" clearable class="input-field" @keyup.enter="search" />
+        <el-select v-model="roleFilter" placeholder="角色筛选" clearable class="select-field" @change="search">
+          <el-option label="客户" value="customer" />
+          <el-option label="商户" value="merchant" />
+          <el-option label="工厂" value="factory" />
+        </el-select>
+        <el-button type="primary" class="search-btn" @click="search">搜索</el-button>
       </div>
-    </el-card>
+    </div>
 
-    <el-card class="table-card">
+    <div class="table-card">
       <el-table :data="tableData" v-loading="loading" stripe class="data-table">
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="phone" label="手机号" width="130" />
         <el-table-column label="姓名" width="140">
           <template #default="{ row }">
-            {{ row.role === 'factory' ? (row.companyName || row.realName || '-') : (row.realName || '-') }}
+            <span class="user-name">{{ row.role === 'factory' ? (row.companyName || row.realName || '-') : (row.realName || '-') }}</span>
           </template>
         </el-table-column>
         <el-table-column label="角色" width="90">
@@ -75,7 +73,7 @@
           @size-change="loadData"
         />
       </div>
-    </el-card>
+    </div>
 
     <el-dialog title="用户详情" v-model="detailVisible" width="500px" class="detail-dialog" destroy-on-close>
       <el-descriptions v-if="detailUser" :column="1" border>
@@ -206,29 +204,22 @@ onMounted(loadData)
 
 <style scoped>
 .page {
-  padding: 24px;
-  background: #f8fafc;
+  padding: 32px 40px;
+  background: var(--c-bg, #fafafa);
   min-height: calc(100vh - 60px);
-}
-
-.toolbar-card {
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 16px;
-  border: 1px solid #e2e8f0;
 }
 
 .toolbar {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--c-surface, #fff);
+  border-radius: 12px;
+  border: 1px solid var(--c-border, #eaeaea);
+  padding: 16px 20px;
+  margin-bottom: 16px;
 }
 
 .toolbar-left {
@@ -246,36 +237,50 @@ onMounted(loadData)
 }
 
 .search-btn {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--c-primary, #5c6cf0);
+  border-color: var(--c-primary, #5c6cf0);
 }
 
 .search-btn:hover {
-  background: #5558e6;
-  border-color: #5558e6;
+  background: #4b55d9;
+  border-color: #4b55d9;
 }
 
 .table-card {
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
-  border: 1px solid #e2e8f0;
+  background: var(--c-surface, #fff);
+  border-radius: 12px;
+  border: 1px solid var(--c-border, #eaeaea);
+  overflow: hidden;
 }
 
 .data-table :deep(.el-table__header th) {
-  background: #fafafa;
+  background: var(--c-bg, #fafafa);
   font-weight: 600;
-  color: #374151;
-  border-bottom: 2px solid #e5e7eb;
+  color: var(--c-text, #171717);
+  border-bottom: 1px solid var(--c-border, #eaeaea);
+}
+
+.data-table :deep(.el-table td) {
+  color: var(--c-text, #171717);
+}
+
+.data-table :deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
+  background: var(--c-bg, #fafafa);
+}
+
+.user-name {
+  font-weight: 500;
+  color: var(--c-text, #171717);
 }
 
 .currency {
-  color: var(--primary);
+  color: var(--c-primary, #5c6cf0);
   font-weight: 600;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
 }
 
 .points-unlock {
-  color: #059669;
+  color: var(--c-success, #16a34a);
   font-weight: 700;
 }
 
@@ -283,26 +288,27 @@ onMounted(loadData)
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
+  padding: 0 20px 20px;
 }
 
 .status-switch :deep(.el-switch__core) {
-  --el-switch-on-color: #10b981;
+  --el-switch-on-color: var(--c-success, #16a34a);
 }
 
 .status-switch :deep(.el-switch.is-checked .el-switch__core) {
-  background: #10b981;
-  border-color: #10b981;
+  background: var(--c-success, #16a34a);
+  border-color: var(--c-success, #16a34a);
 }
 
 .detail-dialog :deep(.el-descriptions__label) {
   font-weight: 500;
-  color: #6b7280;
-  background: #f9fafb;
+  color: var(--c-text-secondary, #6b7280);
+  background: var(--c-bg, #fafafa);
 }
 
 .adjust-form .form-hint {
   font-size: 12px;
-  color: #909399;
+  color: var(--c-text-muted, #9ca3af);
   margin-top: 4px;
 }
 
@@ -315,12 +321,12 @@ onMounted(loadData)
 }
 
 .confirm-btn {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--c-primary, #5c6cf0);
+  border-color: var(--c-primary, #5c6cf0);
 }
 
 .confirm-btn:hover {
-  background: #5558e6;
-  border-color: #5558e6;
+  background: #4b55d9;
+  border-color: #4b55d9;
 }
 </style>

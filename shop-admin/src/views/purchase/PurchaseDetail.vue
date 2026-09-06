@@ -1,10 +1,11 @@
 <template>
-  <div class="page-container detail-page" v-loading="loading">
-    <div class="card-toolbar">
-      <el-button text @click="$router.push('/purchases')" class="back-btn">
-        <el-icon><ArrowLeft /></el-icon> 返回采购列表
-      </el-button>
-      <div class="header-actions">
+  <div class="page" v-loading="loading">
+    <div class="toolbar">
+      <button class="back-link" @click="$router.push('/purchases')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        返回采购列表
+      </button>
+      <div class="toolbar-actions">
         <el-button v-if="isMerchant && detail.status_zj === 'pending'" type="primary" size="small" @click="$router.push('/purchases/form/' + detail.id_zj)">修改</el-button>
         <el-button v-if="isMerchant && detail.status_zj === 'quoted'" type="success" size="small" @click="handlePay">确认付款</el-button>
         <el-button v-if="isMerchant && detail.status_zj === 'shipped'" type="success" size="small" @click="handleReceive">确认收货</el-button>
@@ -15,21 +16,25 @@
       </div>
     </div>
 
-    <div class="cards-row">
-      <div class="card-item">
-        <div class="card-header">
-          <span class="card-header-icon order-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></span>
-          采购单信息
+    <div class="info-cards-row">
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon icon-order">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+          </div>
+          <span>采购单信息</span>
         </div>
-        <div class="card-body">
+        <div class="info-card-body">
           <div class="info-grid">
             <div class="info-item">
               <span class="info-label">采购单号</span>
-              <span class="info-value order-no">{{ detail.order_no_zj }}</span>
+              <span class="info-value mono">{{ detail.order_no_zj }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">状态</span>
-              <span class="info-value"><el-tag :type="statusType(detail.status_zj)" effect="light" size="small">{{ statusLabel(detail.status_zj) }}</el-tag></span>
+              <span class="info-value">
+                <span class="status-tag" :class="'status-' + detail.status_zj">{{ statusLabel(detail.status_zj) }}</span>
+              </span>
             </div>
             <div class="info-item">
               <span class="info-label">厂家</span>
@@ -37,7 +42,7 @@
             </div>
             <div class="info-item">
               <span class="info-label">金额</span>
-              <span class="info-value price">{{ detail.total_amount_zj > 0 ? '¥' + Number(detail.total_amount_zj).toFixed(2) : '待报价' }}</span>
+              <span class="info-value price-value">{{ detail.total_amount_zj > 0 ? '¥' + Number(detail.total_amount_zj).toFixed(2) : '待报价' }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">预计交货</span>
@@ -51,64 +56,67 @@
         </div>
       </div>
 
-      <div v-if="detail.express_company_zj || detail.tracking_no_zj" class="card-item">
-        <div class="card-header">
-          <span class="card-header-icon logistics-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span>
-          物流信息
+      <div v-if="detail.express_company_zj || detail.tracking_no_zj" class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon icon-logistics">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          </div>
+          <span>物流信息</span>
         </div>
-        <div class="card-body">
+        <div class="info-card-body">
           <div class="info-grid">
             <div class="info-item"><span class="info-label">快递公司</span><span class="info-value">{{ detail.express_company_zj }}</span></div>
-            <div class="info-item"><span class="info-label">快递单号</span><span class="info-value tracking-no">{{ detail.tracking_no_zj }}</span></div>
+            <div class="info-item"><span class="info-label">快递单号</span><span class="info-value mono tracking">{{ detail.tracking_no_zj }}</span></div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="card-item">
-      <div class="card-header">
-        <span class="card-header-icon items-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span>
-        采购明细
+    <div class="info-card">
+      <div class="info-card-header">
+        <div class="info-card-icon icon-items">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        </div>
+        <span>采购明细</span>
       </div>
-      <div class="card-body">
-        <el-table :data="items" stripe class="items-table">
+      <div class="info-card-body no-padding">
+        <el-table :data="items" class="items-table">
           <el-table-column label="商品名称" min-width="140">
             <template #default="{ row }">{{ row.product_name_zj }}</template>
           </el-table-column>
           <el-table-column prop="spec_zj" label="规格" width="130" />
           <el-table-column prop="quantity_zj" label="数量" width="80" />
-          <el-table-column label="单价" width="120" align="right">
+          <el-table-column label="单价" width="130" align="right">
             <template #default="{ row }">{{ row.unit_price_zj > 0 ? '¥' + Number(row.unit_price_zj).toFixed(2) : '待报价' }}</template>
           </el-table-column>
-          <el-table-column label="小计" width="120" align="right">
+          <el-table-column label="小计" width="130" align="right">
             <template #default="{ row }">{{ row.subtotal_zj > 0 ? '¥' + Number(row.subtotal_zj).toFixed(2) : '-' }}</template>
           </el-table-column>
         </el-table>
-        <div class="total-row">
-          采购总金额：<span class="total-price">{{ detail.total_amount_zj > 0 ? '¥' + Number(detail.total_amount_zj).toFixed(2) : '待厂家报价' }}</span>
+        <div class="total-summary">
+          采购总金额<span class="total-amount">{{ detail.total_amount_zj > 0 ? '¥' + Number(detail.total_amount_zj).toFixed(2) : '待厂家报价' }}</span>
         </div>
       </div>
     </div>
 
-    <!-- 报价弹窗（厂家专用） -->
-    <el-dialog v-model="quoteDialogVisible" title="报价" width="600px" destroy-on-close>
-      <el-table :data="quoteItems" stripe>
+    <el-dialog v-model="quoteDialogVisible" title="报价" width="680px" destroy-on-close>
+      <el-table :data="quoteItems" class="dialog-table">
         <el-table-column label="商品" min-width="120">
           <template #default="{ row }">{{ row.product_name_zj }}</template>
         </el-table-column>
         <el-table-column prop="spec_zj" label="规格" width="100" />
         <el-table-column prop="quantity_zj" label="数量" width="70" />
-        <el-table-column label="单价" width="140">
+        <el-table-column label="单价" width="160">
           <template #default="{ row }">
-            <el-input-number v-model="row._quotePrice" :min="0.01" :precision="2" size="small" controls-position="right" style="width:100%" />
+            <el-input-number v-model="row._quotePrice" :min="0.01" :precision="2" size="small" controls-position="right" class="full-width" />
           </template>
         </el-table-column>
-        <el-table-column label="小计" width="100" align="right">
+        <el-table-column label="小计" width="110" align="right">
           <template #default="{ row }">¥{{ ((row._quotePrice||0) * row.quantity_zj).toFixed(2) }}</template>
         </el-table-column>
       </el-table>
-      <div class="quote-total">
-        总金额：<span class="quote-total-price">¥{{ quoteTotal.toFixed(2) }}</span>
+      <div class="dialog-total">
+        总金额：<span class="dialog-total-price">¥{{ quoteTotal.toFixed(2) }}</span>
       </div>
       <template #footer>
         <el-button @click="quoteDialogVisible = false">取消</el-button>
@@ -116,11 +124,14 @@
       </template>
     </el-dialog>
 
-    <!-- 发货弹窗 -->
-    <el-dialog v-model="shipDialogVisible" title="发货" width="440px" destroy-on-close>
-      <el-form :model="shipForm" label-width="80px">
-        <el-form-item label="快递公司"><el-input v-model="shipForm.expressCompany" placeholder="如：顺丰速运" /></el-form-item>
-        <el-form-item label="快递单号"><el-input v-model="shipForm.trackingNo" placeholder="请输入快递单号" /></el-form-item>
+    <el-dialog v-model="shipDialogVisible" title="发货" width="480px" destroy-on-close>
+      <el-form :model="shipForm" label-position="top">
+        <el-form-item label="快递公司">
+          <el-input v-model="shipForm.expressCompany" placeholder="如：顺丰速运" />
+        </el-form-item>
+        <el-form-item label="快递单号">
+          <el-input v-model="shipForm.trackingNo" placeholder="请输入快递单号" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="shipDialogVisible = false">取消</el-button>
@@ -203,7 +214,6 @@ const handleCancel = async () => {
   } catch {}
 }
 
-// 报价
 const quoteDialogVisible = ref(false)
 const quoting = ref(false)
 const quoteItems = ref([])
@@ -229,7 +239,6 @@ const handleQuote = async () => {
   } catch {} finally { quoting.value = false }
 }
 
-// 发货
 const shipDialogVisible = ref(false)
 const shipping = ref(false)
 const shipForm = ref({ expressCompany: '', trackingNo: '' })
@@ -255,47 +264,89 @@ onMounted(loadDetail)
 </script>
 
 <style scoped>
-.detail-page { padding: 24px; }
+.page { padding: 32px 40px; }
 
-.back-btn { font-size: 14px; font-weight: 500; }
-.header-actions { display: flex; gap: 8px; }
-
-.cards-row { display: flex; gap: 16px; flex-wrap: wrap; }
-.cards-row .card-item { flex: 1; min-width: 280px; }
-
-.card-item {
-  background: var(--bg-card); border-radius: var(--radius); margin-bottom: 16px;
-  box-shadow: var(--shadow-sm); border: 1px solid var(--border); overflow: hidden;
+.toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 24px;
 }
 
-.card-header {
+.back-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: none; color: var(--c-text-secondary);
+  font-size: 14px; font-weight: 500; cursor: pointer; padding: 6px 0;
+  transition: color .15s;
+}
+.back-link:hover { color: var(--c-text); }
+
+.toolbar-actions { display: flex; gap: 8px; }
+
+.info-cards-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  margin-bottom: 16px;
+}
+
+.info-card {
+  background: var(--c-surface); border-radius: 12px;
+  border: 1px solid var(--c-border); overflow: hidden;
+}
+
+.info-card-header {
   display: flex; align-items: center; gap: 10px;
-  padding: 16px 24px; font-size: 15px; font-weight: 700; color: var(--text);
-  border-bottom: 1px solid var(--border-light); background: #fafbff;
+  padding: 16px 24px; font-size: 14px; font-weight: 600;
+  color: var(--c-text); border-bottom: 1px solid var(--c-border);
+  background: var(--c-bg);
 }
 
-.card-header-icon {
+.info-card-icon {
   display: flex; align-items: center; justify-content: center;
-  width: 34px; height: 34px; border-radius: 10px;
+  width: 34px; height: 34px; border-radius: 8px;
 }
-.card-header-icon svg { width: 18px; height: 18px; }
-.order-icon { background: var(--primary-bg); color: var(--primary); }
-.logistics-icon { background: var(--info-bg); color: var(--info); }
-.items-icon { background: var(--warning-bg); color: var(--warning); }
+.icon-order { background: #e0e7ff; color: var(--c-primary); }
+.icon-logistics { background: #dbeafe; color: #2563eb; }
+.icon-items { background: #fef3c7; color: #92400e; }
 
-.card-body { padding: 20px 24px; }
+.info-card-body { padding: 20px 24px; }
+.info-card-body.no-padding { padding: 0; }
 
-.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 40px; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 40px; }
 .info-item { display: flex; flex-direction: column; gap: 4px; }
-.info-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
-.info-value { font-size: 14px; color: var(--text); }
-.info-value.order-no { font-family: monospace; font-weight: 600; }
-.info-value.price { font-weight: 700; color: var(--primary); font-size: 18px; }
-.info-value.tracking-no { font-family: monospace; font-weight: 500; color: var(--info); }
+.info-label { font-size: 12px; color: var(--c-text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; }
+.info-value { font-size: 14px; color: var(--c-text); }
+.info-value.mono { font-family: 'SF Mono','Menlo',monospace; font-weight: 600; }
+.info-value.price-value { font-weight: 700; font-size: 18px; }
+.info-value.tracking { color: #2563eb; }
 
-.total-row { margin-top: 20px; text-align: right; font-size: 14px; color: var(--text-secondary); }
-.total-price { color: var(--primary); font-size: 22px; font-weight: 800; margin-left: 8px; }
+.status-tag {
+  display: inline-block; padding: 2px 10px; border-radius: 6px;
+  font-size: 12px; font-weight: 500;
+}
+.status-pending { background: #f3f4f6; color: var(--c-text-secondary); }
+.status-quoted { background: #fef3c7; color: #92400e; }
+.status-paid { background: #e0e7ff; color: var(--c-primary); }
+.status-shipped { background: #dbeafe; color: #2563eb; }
+.status-received { background: #dcfce7; color: var(--c-success); }
+.status-cancelled { background: #fee2e2; color: #dc2626; }
 
-.quote-total { text-align: right; margin-top: 16px; font-size: 16px; font-weight: 600; }
-.quote-total-price { color: var(--primary); font-size: 24px; font-weight: 700; margin-left: 8px; }
+.items-table :deep(.el-table__header th) {
+  background: var(--c-bg); color: var(--c-text-secondary);
+  font-weight: 600; font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.5px; border-bottom: 1px solid var(--c-border);
+}
+.items-table :deep(.el-table__body td) { border-color: var(--c-border); }
+
+.total-summary {
+  text-align: right; padding: 16px 24px;
+  font-size: 14px; color: var(--c-text-secondary);
+}
+.total-amount { font-size: 22px; font-weight: 800; color: var(--c-text); margin-left: 12px; }
+
+.dialog-table :deep(.el-table__header th) {
+  background: var(--c-bg); color: var(--c-text-secondary);
+  font-weight: 600; font-size: 12px;
+}
+.full-width { width: 100%; }
+
+.dialog-total { text-align: right; margin-top: 16px; font-size: 16px; font-weight: 600; }
+.dialog-total-price { font-size: 24px; font-weight: 700; margin-left: 8px; }
 </style>

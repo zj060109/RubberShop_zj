@@ -268,16 +268,19 @@ public class HomeFragment extends Fragment {
         }
         @Override public void onBindViewHolder(VH holder, int pos) {
             Product p = products.get(pos);
-            String displayName = p.getSpec() != null ? p.getSpec() : p.getName();
-            holder.tvName.setText(displayName);
+            String brand = p.getBrand() != null ? p.getBrand() + " " : "";
+            String model = p.getModel() != null ? p.getModel() : "";
+            String spec = p.getSpec() != null ? p.getSpec() : "";
+            holder.tvName.setText(brand + model);
+            holder.tvSpec.setText(spec);
             holder.tvPrice.setText(Utils.toPrice(p.getPrice()));
             holder.tvStock.setText("库存: " + p.getStock());
             holder.itemView.setOnClickListener(v -> listener.onItem(p));
         }
         @Override public int getItemCount() { return products.size(); }
         class VH extends RecyclerView.ViewHolder {
-            TextView tvName, tvPrice, tvStock;
-            VH(View v) { super(v); tvName = v.findViewById(R.id.tv_name); tvPrice = v.findViewById(R.id.tv_price); tvStock = v.findViewById(R.id.tv_stock); }
+            TextView tvName, tvSpec, tvPrice, tvStock;
+            VH(View v) { super(v); tvName = v.findViewById(R.id.tv_name); tvSpec = v.findViewById(R.id.tv_spec); tvPrice = v.findViewById(R.id.tv_price); tvStock = v.findViewById(R.id.tv_stock); }
         }
     }
 

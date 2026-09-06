@@ -126,6 +126,9 @@ public class Models {
         @SerializedName("category_id_zj") private Long categoryId;
         @SerializedName("name_zj") private String name;
         @SerializedName("spec_zj") private String spec;
+        @SerializedName("brand_zj") private String brand;
+        @SerializedName("model_zj") private String model;
+        @SerializedName("material_zj") private String material;
         @SerializedName("description_zj") private String description;
         @SerializedName("images_zj") private String images;
         @SerializedName("price_zj") private Double price;
@@ -139,6 +142,9 @@ public class Models {
         public Long getCategoryId() { return categoryId; }
         public String getName() { return name; }
         public String getSpec() { return spec; }
+        public String getBrand() { return brand; }
+        public String getModel() { return model; }
+        public String getMaterial() { return material; }
         public String getDescription() { return description; }
         public String getImages() { return images; }
         public Double getPrice() { return price != null ? price : 0.0; }

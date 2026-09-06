@@ -1,8 +1,8 @@
 <template>
-  <div class="page-container">
-    <div class="card-toolbar">
+  <div class="page">
+    <div class="toolbar">
       <div class="toolbar-left">
-        <el-radio-group v-model="statusFilter" @change="onStatusChange">
+        <el-radio-group v-model="statusFilter" @change="onStatusChange" class="status-pills">
           <el-radio-button value="">全部</el-radio-button>
           <el-radio-button value="unpaid">待还</el-radio-button>
           <el-radio-button value="partially_paid">部分还</el-radio-button>
@@ -16,12 +16,12 @@
       </div>
     </div>
 
-    <div class="card-table">
+    <div class="table-card">
       <el-table :data="tableData" v-loading="loading" stripe>
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column label="顾客" min-width="120">
           <template #default="{ row }">
-            <div>{{ row.customerName || '-' }}</div>
+            <div class="customer-name">{{ row.customerName || '-' }}</div>
             <div class="sub-text">{{ row.customerPhone || '-' }}</div>
           </template>
         </el-table-column>
@@ -30,22 +30,22 @@
             <el-button v-if="row.orderNo" type="primary" link size="small" @click="$router.push('/orders/' + row.orderId)">
               {{ row.orderNo }}
             </el-button>
-            <span v-else>-</span>
+            <span v-else class="text-muted">-</span>
           </template>
         </el-table-column>
         <el-table-column label="应收金额" width="130" align="right">
           <template #default="{ row }">
-            <span class="amount-primary">&yen;{{ formatNum(row.amountOwed) }}</span>
+            <span class="amount-bold">&yen;{{ formatNum(row.amountOwed) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="已还金额" width="130" align="right">
           <template #default="{ row }">
-            <span class="amount-primary">&yen;{{ formatNum(row.amountPaid) }}</span>
+            <span class="amount-bold amount-success">&yen;{{ formatNum(row.amountPaid) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="剩余欠款" width="130" align="right">
           <template #default="{ row }">
-            <span class="amount-primary">&yen;{{ formatNum(row.remaining) }}</span>
+            <span class="amount-bold amount-danger">&yen;{{ formatNum(row.remaining) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="100" align="center">
@@ -107,7 +107,7 @@
             <el-table-column prop="id_zj" label="ID" width="60" />
             <el-table-column label="金额" width="120" align="right">
               <template #default="{ row }">
-                <span class="amount-primary">&yen;{{ formatNum(row.amount_zj) }}</span>
+                <span class="amount-bold">&yen;{{ formatNum(row.amount_zj) }}</span>
               </template>
             </el-table-column>
             <el-table-column label="方式" width="110">
@@ -115,7 +115,7 @@
                 <el-tag v-if="row.payment_method_zj === 'balance'" type="primary" size="small">余额</el-tag>
                 <el-tag v-else-if="row.payment_method_zj === 'cash'" type="success" size="small">现金</el-tag>
                 <el-tag v-else-if="row.payment_method_zj === 'bank_transfer'" type="warning" size="small">转账</el-tag>
-                <span v-else>{{ row.payment_method_zj }}</span>
+                <span v-else class="text-muted">{{ row.payment_method_zj }}</span>
               </template>
             </el-table-column>
             <el-table-column prop="remark_zj" label="备注" min-width="120" />
@@ -268,6 +268,21 @@ onMounted(loadData)
 </script>
 
 <style scoped>
+.page {
+  padding: 32px 40px;
+  background: var(--c-bg, #fafafa);
+  min-height: calc(100vh - 60px);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
 .toolbar-left {
   display: flex;
   align-items: center;
@@ -279,23 +294,89 @@ onMounted(loadData)
   gap: 10px;
 }
 
+.status-pills :deep(.el-radio-button__inner) {
+  border-radius: 8px !important;
+  padding: 7px 18px;
+  border: 1px solid var(--c-border, #eaeaea) !important;
+  box-shadow: none;
+  transition: all 0.2s;
+  background: var(--c-surface, #fff);
+  color: var(--c-text-secondary, #6b7280);
+  font-size: 13px;
+}
+.status-pills :deep(.el-radio-button:not(:last-child) .el-radio-button__inner) {
+  margin-right: 8px;
+}
+.status-pills :deep(.el-radio-button.is-active .el-radio-button__inner) {
+  background: var(--c-primary, #5c6cf0);
+  border-color: var(--c-primary, #5c6cf0) !important;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(92, 108, 240, 0.3);
+}
+
 .search-input {
   width: 200px;
 }
 
+.search-btn {
+  background: var(--c-primary, #5c6cf0);
+  border-color: var(--c-primary, #5c6cf0);
+}
+
+.table-card {
+  background: var(--c-surface, #fff);
+  border-radius: 12px;
+  border: 1px solid var(--c-border, #eaeaea);
+  overflow: hidden;
+}
+
+.table-card :deep(.el-table__header th) {
+  background: var(--c-bg, #fafafa);
+  font-weight: 600;
+  color: var(--c-text, #171717);
+  border-bottom: 1px solid var(--c-border, #eaeaea);
+}
+
+.table-card :deep(.el-table td) {
+  color: var(--c-text, #171717);
+}
+
+.table-card :deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
+  background: var(--c-bg, #fafafa);
+}
+
+.customer-name {
+  font-weight: 500;
+  color: var(--c-text, #171717);
+}
+
 .sub-text {
   font-size: 12px;
-  color: #909399;
+  color: var(--c-text-muted, #9ca3af);
   margin-top: 2px;
 }
 
-.amount-primary {
-  color: var(--primary);
-  font-weight: 600;
+.amount-bold {
+  font-weight: 700;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 13px;
+  color: var(--c-text, #171717);
+}
+
+.amount-success {
+  color: var(--c-success, #16a34a);
+}
+
+.amount-danger {
+  color: var(--c-danger, #dc2626);
+}
+
+.text-muted {
+  color: var(--c-text-muted, #9ca3af);
 }
 
 .amount-owed {
-  color: var(--primary-dark);
+  color: var(--c-danger, #dc2626);
   font-weight: 700;
 }
 
@@ -303,6 +384,7 @@ onMounted(loadData)
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+  padding: 0 20px 20px;
 }
 
 .detail-wrap {
@@ -313,10 +395,10 @@ onMounted(loadData)
 .section-title {
   font-size: 14px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--c-text, #171717);
   margin: 20px 0 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--c-border, #eaeaea);
 }
 
 .receipts-section {
@@ -325,13 +407,13 @@ onMounted(loadData)
 
 .repay-form .repay-info {
   font-size: 14px;
-  color: #374151;
+  color: var(--c-text, #171717);
 }
 
 .repay-form .repay-remaining {
   font-size: 16px;
   font-weight: 700;
-  color: var(--primary);
+  color: var(--c-primary, #5c6cf0);
 }
 
 .full-input {

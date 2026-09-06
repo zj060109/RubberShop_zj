@@ -74,7 +74,11 @@ DROP TABLE IF EXISTS product_zj;
 CREATE TABLE product_zj (
     id_zj BIGINT(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
     category_id_zj BIGINT(20) NOT NULL COMMENT '分类ID',
-    name_zj VARCHAR(100) NOT NULL COMMENT '商品名称',
+    name_zj VARCHAR(200) NOT NULL COMMENT '商品名称（自动生成：分类+品牌+型号+材质）',
+    spec_zj VARCHAR(100) DEFAULT NULL COMMENT '尺寸规格',
+    brand_zj VARCHAR(50) DEFAULT NULL COMMENT '品牌',
+    model_zj VARCHAR(100) DEFAULT NULL COMMENT '型号',
+    material_zj VARCHAR(50) DEFAULT NULL COMMENT '材质',
     description_zj TEXT COMMENT '描述',
     images_zj JSON COMMENT '图片数组',
     price_zj DECIMAL(10,2) NOT NULL COMMENT '销售价',
@@ -317,16 +321,48 @@ VALUES ('13800000000', 'admin123', 'merchant', '系统管理员', 0.00, 1, NOW()
 INSERT INTO user_zj (phone_zj, password_zj, role_zj, company_name_zj, status_zj, created_at_zj)
 VALUES ('13900000001', 'factory123', 'factory', '正佳橡胶厂', 1, NOW());
 
--- 商品分类示例
-INSERT INTO category_zj (name_zj, parent_id_zj, sort_zj, created_at_zj) VALUES
-('橡胶原料', 0, 1, NOW()),
-('橡胶制品', 0, 2, NOW()),
-('O型圈', 2, 1, NOW()),
-('密封条', 2, 2, NOW());
+-- ============================================
+-- 商品分类层级
+-- 橡胶产品 > 油封 / 密封 / 管 / 条 / 棒 / 板
+-- 油封 > 骨架油封·液压油封·气门油封·旋转油封
+-- 密封 > 活塞杆密封·活塞密封·旋转密封·防尘密封·导向环·支撑环
+-- ============================================
+INSERT INTO category_zj (id_zj, name_zj, parent_id_zj, sort_zj, created_at_zj) VALUES
+(1,  '橡胶产品', 0, 1, NOW()),
+-- 油封
+(10, '油封',   1, 1, NOW()),
+(11, '骨架油封', 10, 1, NOW()),
+(12, '液压油封', 10, 2, NOW()),
+(13, '气门油封', 10, 3, NOW()),
+(14, '旋转油封', 10, 4, NOW()),
+-- 密封
+(20, '密封',   1, 2, NOW()),
+(21, '活塞杆密封', 20, 1, NOW()),
+(22, '活塞密封',   20, 2, NOW()),
+(23, '旋转密封',   20, 3, NOW()),
+(24, '防尘密封',   20, 4, NOW()),
+(25, '导向环',     20, 5, NOW()),
+(26, '支撑环',     20, 6, NOW()),
+-- 管/条/棒/板（占位）
+(30, '管', 1, 3, NOW()),
+(31, '条', 1, 4, NOW()),
+(32, '棒', 1, 5, NOW()),
+(33, '板', 1, 6, NOW());
 
 -- 商品示例
-INSERT INTO product_zj (category_id_zj, name_zj, description_zj, images_zj, price_zj, stock_zj, warning_stock_zj, status_zj, created_at_zj)
-VALUES (1, '天然橡胶片', '优质天然橡胶', '["/uploads/rubber1.jpg"]', 25.00, 500, 50, 'on', NOW());
+INSERT INTO product_zj (category_id_zj, name_zj, spec_zj, brand_zj, model_zj, material_zj, description_zj, images_zj, price_zj, stock_zj, warning_stock_zj, status_zj, created_at_zj) VALUES
+-- 骨架油封
+(11, '骨架油封 NAK TC-25-40-7 NBR', '25x40x7', 'NAK', 'TC-25-40-7', 'NBR', '高品质骨架油封，适用于旋转轴密封', '["/uploads/seal1.jpg","/uploads/seal2.jpg"]', 12.50, 200, 20, 'on', NOW()),
+(11, '骨架油封 CFW BA-30-47-7 FKM', '30x47x7', 'CFW', 'BA-30-47-7', 'FKM', '氟橡胶骨架油封，耐高温耐油', '["/uploads/seal3.jpg"]', 35.00, 150, 15, 'on', NOW()),
+-- 液压油封
+(12, '液压油封 NOK USI-40-55-9 PU', '40x55x9', 'NOK', 'USI-40-55-9', 'PU', '聚氨酯液压油封，高压工况适用', '["/uploads/seal4.jpg"]', 28.00, 100, 10, 'on', NOW()),
+-- 活塞杆密封
+(21, '活塞杆密封 Parker B3-80-95-12 PU', '80x95x12', 'Parker', 'B3-80-95-12', 'PU', '活塞杆用密封件，低摩擦高性能', '["/uploads/seal5.jpg"]', 45.00, 80, 10, 'on', NOW()),
+(21, '活塞杆密封 国产 GS-50-60-7 NBR', '50x60x7', '鼎基', 'GS-50-60-7', 'NBR', '经济型活塞杆密封，性价比之选', '["/uploads/seal6.jpg"]', 8.80, 500, 50, 'on', NOW()),
+-- 活塞密封
+(22, '活塞密封 NOK ODU-100-84-18 PU', '100x84x18', 'NOK', 'ODU-100-84-18', 'PU', '双作用活塞密封，长寿命设计', '["/uploads/seal7.jpg"]', 55.00, 60, 10, 'on', NOW()),
+-- 防尘密封
+(24, '防尘密封 SKF DA-25-33-7 PU', '25x33x7', 'SKF', 'DA-25-33-7', 'PU', '优质防尘圈，防护等级IP65', '["/uploads/seal8.jpg"]', 6.00, 300, 30, 'on', NOW());
 
 -- 系统配置
 INSERT INTO sys_config_zj (config_key_zj, config_value_zj, remark_zj) VALUES

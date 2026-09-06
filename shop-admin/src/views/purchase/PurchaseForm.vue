@@ -1,37 +1,30 @@
 <template>
-  <div class="page-container">
-    <div class="form-header">
-      <h2>{{ isEdit ? '编辑采购单' : '新增采购单 — 发送给厂家报价' }}</h2>
+  <div class="page">
+    <div class="toolbar">
+      <h2 class="page-title">{{ isEdit ? '编辑采购单' : '新增采购单 — 发送给厂家报价' }}</h2>
     </div>
 
-    <el-card shadow="never" class="form-card">
-      <el-form :model="form" :rules="rules" ref="formRef" label-width="90px" label-position="right">
-        <el-row :gutter="24">
-          <el-col :span="12">
-            <el-form-item label="厂家" prop="factoryId">
-              <el-select v-model="form.factoryId" placeholder="选择厂家" filterable clearable style="width:100%">
-                <el-option v-for="f in factoryList" :key="f.id" :label="f.companyName || f.realName" :value="f.id" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="预计交货">
-              <el-date-picker v-model="form.estimatedDelivery" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" style="width:100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
+    <div class="card-surface">
+      <div class="card-section-title">基本信息</div>
+      <el-form :model="form" :rules="rules" ref="formRef" label-position="top" class="form-grid">
+        <el-form-item label="厂家" prop="factoryId">
+          <el-select v-model="form.factoryId" placeholder="选择厂家" filterable clearable class="full-width">
+            <el-option v-for="f in factoryList" :key="f.id" :label="f.companyName || f.realName" :value="f.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="预计交货">
+          <el-date-picker v-model="form.estimatedDelivery" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" class="full-width" />
+        </el-form-item>
       </el-form>
-    </el-card>
+    </div>
 
-    <el-card shadow="never" class="form-card" style="margin-top:16px">
-      <template #header>
-        <div class="card-header">
-          <span>采购明细（厂家将为您报价）</span>
-          <el-button type="primary" plain :icon="Plus" size="small" @click="addItem">添加明细</el-button>
-        </div>
-      </template>
+    <div class="card-surface" style="margin-top:16px">
+      <div class="card-section-header">
+        <span class="card-section-title">采购明细（厂家将为您报价）</span>
+        <el-button type="primary" plain :icon="Plus" size="small" @click="addItem" class="add-item-btn">添加明细</el-button>
+      </div>
 
-      <el-table :data="form.items" stripe v-if="form.items.length > 0">
+      <el-table :data="form.items" class="items-table" v-if="form.items.length > 0">
         <el-table-column label="商品名称" min-width="160">
           <template #default="{ row }">
             <el-input v-model="row.productName" placeholder="商品名称（必填）" size="small" />
@@ -54,21 +47,23 @@
         </el-table-column>
         <el-table-column label="" width="60" align="center">
           <template #default="{ $index }">
-            <el-button type="danger" text :icon="Delete" size="small" @click="removeItem($index)" />
+            <button class="remove-btn" @click="removeItem($index)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+            </button>
           </template>
         </el-table-column>
       </el-table>
-      <el-empty v-else description="暂无明细，请点击添加" :image-size="80" />
+      <div v-else class="empty-state">暂无明细，请点击"添加明细"</div>
 
-      <div class="total-bar">
-        <span class="total-label">共 {{ form.items.length }} 项</span>
-        <span class="total-hint">价格由厂家填写</span>
+      <div class="table-footer">
+        <span class="footer-label">共 {{ form.items.length }} 项</span>
+        <span class="footer-hint">价格由厂家填写</span>
       </div>
-    </el-card>
+    </div>
 
-    <div class="form-footer">
+    <div class="form-actions">
       <el-button @click="router.push('/purchases')">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="handleSave">发送给厂家报价</el-button>
+      <el-button type="primary" :loading="saving" @click="handleSave" class="primary-btn">发送给厂家报价</el-button>
     </div>
   </div>
 </template>
@@ -155,21 +150,67 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.form-header { margin-bottom: 16px; }
-.form-header h2 { font-size: 18px; font-weight: 700; color: var(--text); margin: 0; }
+.page { padding: 32px 40px; }
 
-.form-card { border: 1px solid var(--border); }
-.form-card .card-header { display: flex; align-items: center; justify-content: space-between; font-weight: 600; }
+.page-title { font-size: 20px; font-weight: 700; color: var(--c-text); margin: 0; }
 
-.total-bar {
+.card-surface {
+  background: var(--c-surface); border-radius: 12px;
+  border: 1px solid var(--c-border); padding: 24px;
+}
+
+.card-section-title {
+  font-size: 14px; font-weight: 600; color: var(--c-text); margin-bottom: 20px;
+}
+
+.card-section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.card-section-header .card-section-title { margin-bottom: 0; }
+.add-item-btn { border-radius: 8px; }
+
+.form-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0 32px;
+}
+
+.full-width { width: 100%; }
+
+.form-grid :deep(.el-form-item__label) {
+  font-size: 12px; font-weight: 600; color: var(--c-text-secondary);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+.items-table :deep(.el-table__header th) {
+  background: var(--c-bg); color: var(--c-text-secondary);
+  font-weight: 600; font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.5px; border-bottom: 1px solid var(--c-border);
+}
+.items-table :deep(.el-table__body td) { border-color: var(--c-border); }
+
+.remove-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 6px; border: none;
+  background: transparent; color: var(--c-text-muted); cursor: pointer;
+  transition: all .15s;
+}
+.remove-btn:hover { background: #fee2e2; color: #dc2626; }
+
+.empty-state {
+  padding: 40px 0; text-align: center; color: var(--c-text-muted);
+  font-size: 14px;
+}
+
+.table-footer {
   display: flex; align-items: center; justify-content: space-between;
   padding-top: 16px; margin-top: 16px;
-  border-top: 1px solid var(--border-light);
+  border-top: 1px solid var(--c-border);
 }
-.total-label { font-size: 14px; color: var(--text-secondary); }
-.total-hint { font-size: 13px; color: var(--text-muted); }
+.footer-label { font-size: 14px; color: var(--c-text-secondary); }
+.footer-hint { font-size: 13px; color: var(--c-text-muted); }
 
-.form-footer {
-  display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;
+.form-actions {
+  display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;
 }
+.primary-btn { border-radius: 8px; }
 </style>

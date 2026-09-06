@@ -1,50 +1,62 @@
 <template>
   <div class="page">
-    <div class="form-wrapper">
-      <el-card class="form-card">
-        <div class="card-title">
-          <span class="title-text">手动库存调整</span>
-          <span class="title-desc">通过本功能对库存进行入库或出库操作</span>
-        </div>
-        <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="adjust-form">
-          <el-form-item label="商品分类" prop="categoryId">
-            <el-tree-select v-model="form.categoryId" :data="categoryTree"
-              :props="{ label: 'name', value: 'id', children: 'children' }"
-              placeholder="请选择商品分类" check-strictly class="form-select-260" @change="onCategoryChange" />
-          </el-form-item>
-          <el-form-item label="尺寸规格" prop="spec">
-            <div class="spec-search-row">
-              <el-select v-model="form.spec" filterable allow-create clearable
-                placeholder="选择或输入尺寸" class="spec-select" @change="onSpecChange">
-                <el-option v-for="s in availableSpecs" :key="s" :label="s" :value="s" />
-              </el-select>
-              <el-button type="info" plain size="default" @click="loadSpecs">刷新尺寸列表</el-button>
-            </div>
-            <div v-if="productInfo" class="product-info-tag">
-              <span class="product-name">{{ productInfo.name }}</span>
-              <span class="product-stock">当前库存: {{ productInfo.stock }}</span>
-            </div>
-          </el-form-item>
-          <el-form-item label="变动类型" prop="type">
-            <el-radio-group v-model="form.type" class="type-radio-group">
-              <el-radio-button value="manual_in">手动入库</el-radio-button>
-              <el-radio-button value="manual_out">手动出库</el-radio-button>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item label="数量" prop="quantity">
-            <el-input-number v-model="form.quantity" :min="1" class="quantity-input" />
-          </el-form-item>
-          <el-form-item label="备注" prop="remark">
-            <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="请输入备注" />
-          </el-form-item>
-          <el-form-item>
-            <div class="form-actions">
-              <el-button type="primary" :loading="submitting" @click="handleSubmit" class="submit-btn">提交调整</el-button>
-              <el-button @click="handleReset">重置</el-button>
-            </div>
-          </el-form-item>
-        </el-form>
-      </el-card>
+    <div class="card-surface">
+      <div class="card-header-block">
+        <h2 class="card-title">手动库存调整</h2>
+        <p class="card-desc">通过本功能对库存进行入库或出库操作</p>
+      </div>
+
+      <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="adjust-form">
+        <el-form-item label="商品分类" prop="categoryId">
+          <el-tree-select v-model="form.categoryId" :data="categoryTree"
+            :props="{ label: 'name', value: 'id', children: 'children' }"
+            placeholder="请选择商品分类" check-strictly class="field-sm" @change="onCategoryChange" />
+        </el-form-item>
+
+        <el-form-item label="尺寸规格" prop="spec">
+          <div class="spec-row">
+            <el-select v-model="form.spec" filterable allow-create clearable
+              placeholder="选择或输入尺寸" class="field-sm" @change="onSpecChange">
+              <el-option v-for="s in availableSpecs" :key="s" :label="s" :value="s" />
+            </el-select>
+            <el-button plain @click="loadSpecs" class="refresh-btn">刷新尺寸列表</el-button>
+          </div>
+          <div v-if="productInfo" class="product-badge">
+            <span class="product-badge-name">{{ productInfo.name }}</span>
+            <span class="product-badge-stock">当前库存: {{ productInfo.stock }}</span>
+          </div>
+        </el-form-item>
+
+        <el-form-item label="变动类型" prop="type">
+          <div class="type-toggle">
+            <button
+              class="toggle-btn"
+              :class="{ active: form.type === 'manual_in' }"
+              @click="form.type = 'manual_in'"
+            >手动入库</button>
+            <button
+              class="toggle-btn"
+              :class="{ active: form.type === 'manual_out' }"
+              @click="form.type = 'manual_out'"
+            >手动出库</button>
+          </div>
+        </el-form-item>
+
+        <el-form-item label="数量" prop="quantity">
+          <el-input-number v-model="form.quantity" :min="1" class="field-full" />
+        </el-form-item>
+
+        <el-form-item label="备注" prop="remark">
+          <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="请输入备注" />
+        </el-form-item>
+
+        <el-form-item>
+          <div class="form-actions">
+            <el-button type="primary" :loading="submitting" @click="handleSubmit" class="primary-btn">提交调整</el-button>
+            <el-button @click="handleReset">重置</el-button>
+          </div>
+        </el-form-item>
+      </el-form>
     </div>
   </div>
 </template>
@@ -162,134 +174,56 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page {
-  padding: 24px;
-  background: #f8fafc;
-  min-height: calc(100vh - 60px);
+.page { padding: 32px 40px; }
+
+.card-surface {
+  background: var(--c-surface); border-radius: 12px;
+  border: 1px solid var(--c-border); padding: 32px;
+  max-width: 560px;
 }
 
-.form-wrapper {
-  width: 100%;
+.card-header-block {
+  margin-bottom: 32px; padding-bottom: 24px;
+  border-bottom: 1px solid var(--c-border);
 }
 
-.form-card {
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
-  border: 1px solid #e2e8f0;
-  padding: 24px;
-  margin-bottom: 16px;
-}
-
-.card-title {
-  margin-bottom: 28px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.title-text {
-  display: block;
-  font-size: 18px;
-  font-weight: 600;
-  color: #303133;
-  margin-bottom: 6px;
-}
-
-.title-desc {
-  font-size: 13px;
-  color: #909399;
-}
+.card-title { font-size: 20px; font-weight: 700; color: var(--c-text); margin: 0 0 6px; }
+.card-desc { font-size: 13px; color: var(--c-text-muted); margin: 0; }
 
 .adjust-form :deep(.el-form-item__label) {
-  font-weight: 500;
-  color: #374151;
-  padding-bottom: 4px;
+  font-size: 12px; font-weight: 600; color: var(--c-text-secondary);
+  text-transform: uppercase; letter-spacing: 0.5px;
 }
 
-.type-radio-group :deep(.el-radio-button__inner) {
-  border-radius: 6px;
-  padding: 8px 28px;
-  border: 1px solid #dcdfe6;
-  box-shadow: none;
-  transition: all 0.2s;
+.field-sm { width: 240px; }
+.field-full { width: 100%; }
+.field-full :deep(.el-input-number) { width: 100%; }
+
+.spec-row { display: flex; gap: 10px; align-items: center; }
+.refresh-btn { border-radius: 8px; }
+
+.product-badge {
+  margin-top: 10px; padding: 10px 14px;
+  background: #dcfce7; border: 1px solid #bbf7d0;
+  border-radius: 8px; display: flex; align-items: center; gap: 16px;
+}
+.product-badge-name { font-size: 14px; font-weight: 600; color: #166534; }
+.product-badge-stock { font-size: 13px; color: var(--c-success); margin-left: auto; }
+
+.type-toggle {
+  display: inline-flex; border-radius: 8px; border: 1px solid var(--c-border);
+  overflow: hidden;
 }
 
-.type-radio-group :deep(.el-radio-button:first-child .el-radio-button__inner) {
-  border-right: none;
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
+.toggle-btn {
+  padding: 8px 28px; border: none; border-right: 1px solid var(--c-border);
+  background: var(--c-surface); color: var(--c-text-secondary);
+  font-size: 14px; font-weight: 500; cursor: pointer; transition: all .15s;
 }
+.toggle-btn:last-child { border-right: none; }
+.toggle-btn.active { background: var(--c-primary); color: #fff; }
+.toggle-btn:not(.active):hover { background: var(--c-bg); }
 
-.type-radio-group :deep(.el-radio-button:last-child .el-radio-button__inner) {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-}
-
-.type-radio-group :deep(.el-radio-button.is-active .el-radio-button__inner) {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
-}
-
-.quantity-input {
-  width: 100%;
-}
-
-.quantity-input :deep(.el-input-number) {
-  width: 100%;
-}
-
-.form-actions {
-  display: flex;
-  gap: 12px;
-  padding-top: 8px;
-}
-
-.submit-btn {
-  background: var(--primary);
-  border-color: var(--primary);
-}
-
-.submit-btn:hover {
-  background: #5558e6;
-  border-color: #5558e6;
-}
-
-.form-select-260 {
-  width: 260px;
-}
-
-.spec-search-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.spec-select {
-  width: 200px;
-}
-
-.product-info-tag {
-  margin-top: 8px;
-  padding: 8px 12px;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.product-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #166534;
-}
-
-.product-stock {
-  font-size: 13px;
-  color: #15803d;
-  margin-left: auto;
-}
+.form-actions { display: flex; gap: 12px; padding-top: 8px; }
+.primary-btn { border-radius: 8px; }
 </style>

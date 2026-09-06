@@ -120,8 +120,11 @@ public class ProductListFragment extends Fragment {
         }
         @Override public void onBindViewHolder(VH h, int p) {
             Product o = products.get(p);
-            String name = o.getSpec() != null ? o.getSpec() : o.getName();
-            h.tvName.setText(name);
+            String brand = o.getBrand() != null ? o.getBrand() + " " : "";
+            String model = o.getModel() != null ? o.getModel() : "";
+            String spec = o.getSpec() != null ? o.getSpec() : "";
+            h.tvName.setText(brand + model);
+            h.tvSpec.setText(spec);
             h.tvPrice.setText(Utils.toPrice(o.getPrice()));
             String stockText = "库存: " + o.getStock();
             if ("off".equals(o.getStatus())) stockText += " (已下架)";
@@ -132,10 +135,11 @@ public class ProductListFragment extends Fragment {
         }
         @Override public int getItemCount() { return products.size(); }
         class VH extends RecyclerView.ViewHolder {
-            TextView tvName, tvPrice, tvStock;
+            TextView tvName, tvSpec, tvPrice, tvStock;
             VH(View v) {
                 super(v);
                 tvName = v.findViewById(R.id.tv_name);
+                tvSpec = v.findViewById(R.id.tv_spec);
                 tvPrice = v.findViewById(R.id.tv_price);
                 tvStock = v.findViewById(R.id.tv_stock);
             }

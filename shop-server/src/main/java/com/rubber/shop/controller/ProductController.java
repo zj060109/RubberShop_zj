@@ -51,7 +51,11 @@ public class ProductController {
 
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<>();
         if (keyword != null && !keyword.isEmpty()) {
-            wrapper.and(w -> w.like(Product::getName_zj, keyword).or().like(Product::getSpec_zj, keyword));
+            wrapper.and(w -> w.like(Product::getName_zj, keyword)
+                    .or().like(Product::getSpec_zj, keyword)
+                    .or().like(Product::getBrand_zj, keyword)
+                    .or().like(Product::getModel_zj, keyword)
+                    .or().like(Product::getMaterial_zj, keyword));
         }
         if (categoryId != null) {
             wrapper.eq(Product::getCategory_id_zj, categoryId);
@@ -86,12 +90,22 @@ public class ProductController {
         product.setCategory_id_zj(req.getCategoryId());
 
         String categoryName = resolveCategoryName(req.getCategoryId());
+        String brand = req.getBrand() != null ? req.getBrand().trim() : "";
+        String model = req.getModel() != null ? req.getModel().trim() : "";
+        String material = req.getMaterial() != null ? req.getMaterial().trim() : "";
         String spec = req.getSpec() != null ? req.getSpec().trim() : "";
-        if (spec.isEmpty()) {
-            throw new BusinessException("尺寸不能为空");
-        }
-        product.setSpec_zj(spec);
-        product.setName_zj(categoryName + " - " + spec);
+
+        StringBuilder nameBuilder = new StringBuilder(categoryName);
+        if (!brand.isEmpty()) nameBuilder.append(" ").append(brand);
+        if (!model.isEmpty()) nameBuilder.append(" ").append(model);
+        if (!material.isEmpty()) nameBuilder.append(" ").append(material);
+        if (!spec.isEmpty()) nameBuilder.append(" ").append(spec);
+        product.setName_zj(nameBuilder.toString().trim());
+
+        product.setBrand_zj(brand.isEmpty() ? null : brand);
+        product.setModel_zj(model.isEmpty() ? null : model);
+        product.setMaterial_zj(material.isEmpty() ? null : material);
+        product.setSpec_zj(spec.isEmpty() ? null : spec);
 
         product.setDescription_zj(req.getDescription());
         if (req.getImages() != null && !req.getImages().isEmpty()) {
@@ -120,13 +134,23 @@ public class ProductController {
             throw new BusinessException("商品不存在");
         }
         if (req.getCategoryId() != null) product.setCategory_id_zj(req.getCategoryId());
-        String spec = product.getSpec_zj();
-        if (req.getSpec() != null && !req.getSpec().trim().isEmpty()) {
-            spec = req.getSpec().trim();
-            product.setSpec_zj(spec);
-        }
+        if (req.getBrand() != null) product.setBrand_zj(req.getBrand().trim().isEmpty() ? null : req.getBrand().trim());
+        if (req.getModel() != null) product.setModel_zj(req.getModel().trim().isEmpty() ? null : req.getModel().trim());
+        if (req.getMaterial() != null) product.setMaterial_zj(req.getMaterial().trim().isEmpty() ? null : req.getMaterial().trim());
+        if (req.getSpec() != null) product.setSpec_zj(req.getSpec().trim().isEmpty() ? null : req.getSpec().trim());
+
         String categoryName = resolveCategoryName(product.getCategory_id_zj());
-        product.setName_zj(categoryName + " - " + spec);
+        String brand = product.getBrand_zj() != null ? product.getBrand_zj() : "";
+        String model = product.getModel_zj() != null ? product.getModel_zj() : "";
+        String material = product.getMaterial_zj() != null ? product.getMaterial_zj() : "";
+        String spec = product.getSpec_zj() != null ? product.getSpec_zj() : "";
+
+        StringBuilder nameBuilder = new StringBuilder(categoryName);
+        if (!brand.isEmpty()) nameBuilder.append(" ").append(brand);
+        if (!model.isEmpty()) nameBuilder.append(" ").append(model);
+        if (!material.isEmpty()) nameBuilder.append(" ").append(material);
+        if (!spec.isEmpty()) nameBuilder.append(" ").append(spec);
+        product.setName_zj(nameBuilder.toString().trim());
         if (req.getDescription() != null) product.setDescription_zj(req.getDescription());
         if (req.getImages() != null) {
             try {

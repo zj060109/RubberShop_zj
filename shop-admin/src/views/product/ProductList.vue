@@ -1,33 +1,58 @@
 <template>
-  <div class="page-container">
-    <div class="card-toolbar">
+  <div class="page">
+    <div class="toolbar">
       <div class="toolbar-left">
-          <el-input v-model="keyword" placeholder="搜索商品尺寸" clearable style="width:220px" @keyup.enter="search">
+        <div class="search-group">
+          <el-input v-model="keyword" placeholder="搜索品牌、型号、材质、规格" clearable class="search-input" @keyup.enter="search">
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
-        <el-tree-select v-model="categoryId" :data="categoryTree" :props="{ label: 'name', value: 'id', children: 'children' }"
-          placeholder="全部分类" clearable check-strictly style="width:180px;margin-left:12px" @change="search" />
-        <el-button type="primary" :loading="loading" @click="search" style="margin-left:12px">搜索</el-button>
+          <el-tree-select v-model="categoryId" :data="categoryTree" :props="{ label: 'name', value: 'id', children: 'children' }"
+            placeholder="全部分类" clearable check-strictly class="category-select" @change="search" />
+          <el-button type="primary" :loading="loading" @click="search" class="btn-search">搜索</el-button>
+        </div>
       </div>
-      <el-button type="primary" @click="$router.push('/products/form')">新增商品</el-button>
+      <el-button type="primary" class="btn-create" @click="$router.push('/products/form')">新增商品</el-button>
     </div>
 
     <div class="card-table">
-      <el-table :data="tableData" v-loading="loading" stripe>
+      <el-table :data="tableData" v-loading="loading" class="product-table">
         <template #empty>
           <el-empty description="暂无商品数据" :image-size="80" />
         </template>
         <el-table-column label="图片" width="80">
           <template #default="{ row }">
-            <el-image v-if="firstImage(row)" :src="firstImage(row)" style="width:50px;height:50px;border-radius:6px" fit="cover" lazy />
+            <el-image v-if="firstImage(row)" :src="firstImage(row)" class="thumb-img" fit="cover" lazy />
             <div v-else class="no-image">--</div>
           </template>
         </el-table-column>
-        <el-table-column prop="spec_zj" label="尺寸" width="140" show-overflow-tooltip />
-        <el-table-column label="分类" width="130">
+        <el-table-column label="规格" width="130">
+          <template #default="{ row }">
+            <span v-if="row.spec_zj" class="spec-tag">{{ row.spec_zj }}</span>
+            <span v-else class="text-muted">--</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="品牌 / 型号" width="170">
+          <template #default="{ row }">
+            <div class="brand-model-cell">
+              <span v-if="row.brand_zj" class="brand-tag">{{ row.brand_zj }}</span>
+              <span v-if="row.model_zj" class="model-text">{{ row.model_zj }}</span>
+              <span v-if="!row.brand_zj && !row.model_zj" class="text-muted">--</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="材质" width="100">
+          <template #default="{ row }">
+            <span v-if="row.material_zj" :class="['mat-tag', 'mat-' + row.material_zj.toLowerCase()]">
+              <span class="mat-dot"></span>
+              {{ row.material_zj }}
+            </span>
+            <span v-else class="text-muted">--</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="分类" width="110">
           <template #default="{ row }">{{ getCategoryName(row.category_id_zj) }}</template>
         </el-table-column>
-        <el-table-column label="价格" width="110" sortable :sort-method="(a,b) => a.price_zj - b.price_zj">
+        <el-table-column label="价格" width="105" sortable :sort-method="(a,b) => a.price_zj - b.price_zj">
           <template #default="{ row }">
             <span class="price-cell">&yen;{{ Number(row.price_zj || 0).toFixed(2) }}</span>
           </template>
@@ -47,8 +72,12 @@
         </el-table-column>
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" text type="primary" @click="$router.push('/products/form/' + row.id_zj)">编辑</el-button>
-            <el-button size="small" text type="danger" @click="handleDelete(row)">删除</el-button>
+            <el-button size="small" text type="primary" class="action-btn" @click="$router.push('/products/form/' + row.id_zj)">
+              <el-icon><Edit /></el-icon>编辑
+            </el-button>
+            <el-button size="small" text type="danger" class="action-btn" @click="handleDelete(row)">
+              <el-icon><Delete /></el-icon>删除
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -63,7 +92,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Edit, Delete } from '@element-plus/icons-vue'
 import { getProductList, toggleProductStatus, deleteProduct } from '../../api/product'
 import { getCategoryTree } from '../../api/category'
 
@@ -132,7 +161,7 @@ const toggleStatus = async (row, val) => {
 }
 
 const handleDelete = (row) => {
-  ElMessageBox.confirm('确定删除「' + getCategoryName(row.category_id_zj) + ' - ' + (row.spec_zj || row.name_zj) + '」？', '确认删除', { type: 'warning' })
+    ElMessageBox.confirm('确定删除「' + (row.brand_zj || '') + ' ' + (row.model_zj || '') + ' ' + (row.spec_zj || '') + '」？', '确认删除', { type: 'warning' })
     .then(async () => {
       try {
         await deleteProduct(row.id_zj)
@@ -153,23 +182,210 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.toolbar-left { display: flex; align-items: center; }
-
-.no-image {
-  width: 50px; height: 50px;
-  display: flex; align-items: center; justify-content: center;
-  color: #c0c4cc; font-size: 12px;
-  background: #f8fafc; border-radius: 8px;
+.page {
+  padding: 32px 40px;
+  min-height: calc(100vh - 60px);
+  background: #fafafa;
 }
 
-.price-cell { color: var(--primary); font-weight: 700; font-size: 14px; }
-.stock-cell { font-weight: 600; }
-.stock-warn { color: #dc2626; font-weight: 700; }
-.stock-warn::before { content: '⚠ '; font-size: 12px; }
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+}
+
+.search-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-input {
+  width: 240px;
+}
+
+.category-select {
+  width: 180px;
+}
+
+.btn-search {
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  --el-button-bg-color: #5c6cf0;
+  --el-button-border-color: #5c6cf0;
+  --el-button-hover-bg-color: #4f5de0;
+  --el-button-hover-border-color: #4f5de0;
+}
+
+.btn-create {
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  --el-button-bg-color: #5c6cf0;
+  --el-button-border-color: #5c6cf0;
+  --el-button-hover-bg-color: #4f5de0;
+  --el-button-hover-border-color: #4f5de0;
+  padding: 8px 20px;
+  font-weight: 500;
+}
+
+.card-table {
+  background: #fff;
+  border: 1px solid #eaeaea;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.product-table {
+  --el-table-border-color: transparent;
+}
+
+.product-table :deep(.el-table__header th) {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+  background: #fafafa;
+  border-bottom: 1px solid #eaeaea;
+  padding: 12px 0;
+  font-weight: 600;
+}
+
+.product-table :deep(.el-table__body td) {
+  border-bottom: 1px solid #f5f5f5;
+  color: #171717;
+  font-size: 13px;
+  padding: 14px 0;
+}
+
+.product-table :deep(.el-table__row:hover > td) {
+  background: #fafafa;
+}
+
+.thumb-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: block;
+}
+
+.no-image {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-size: 12px;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+.text-muted {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.spec-tag {
+  display: inline-block;
+  background: #f5f5f5;
+  color: #171717;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: 'Courier New', monospace;
+}
+
+.brand-model-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.brand-tag {
+  display: inline-block;
+  background: #eef0ff;
+  color: #5c6cf0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.model-text {
+  color: #6b7280;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mat-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.mat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.mat-nbr   { background: #eff6ff; color: #2563eb; }
+.mat-fkm   { background: #fef2f2; color: #dc2626; }
+.mat-epdm  { background: #ecfdf5; color: #059669; }
+.mat-sil   { background: #f0fdf4; color: #16a34a; }
+.mat-pu    { background: #faf5ff; color: #9333ea; }
+.mat-hnbr  { background: #fffbeb; color: #d97706; }
+.mat-cr    { background: #fefce8; color: #ca8a04; }
+.mat-ptfe  { background: #f8fafc; color: #475569; }
+.mat-nr    { background: #fef7ed; color: #ea580c; }
+.mat-acm   { background: #fdf2f8; color: #db2777; }
+
+.price-cell {
+  color: #5c6cf0;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.stock-cell {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.stock-warn {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.action-btn {
+  font-size: 13px;
+  gap: 4px;
+}
 
 .pagination-wrap {
-  display: flex; justify-content: flex-end;
-  padding: 16px 20px;
-  border-top: 1px solid var(--border-light);
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 24px;
+  border-top: 1px solid #eaeaea;
 }
 </style>

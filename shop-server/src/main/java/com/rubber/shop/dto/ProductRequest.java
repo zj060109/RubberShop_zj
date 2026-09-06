@@ -1,6 +1,7 @@
 package com.rubber.shop.dto;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -16,6 +17,14 @@ public class ProductRequest {
     private String name;
 
     private String spec;
+
+    @NotBlank(message = "品牌不能为空")
+    private String brand;
+
+    @NotBlank(message = "型号不能为空")
+    private String model;
+
+    private String material;
 
     private String description;
 

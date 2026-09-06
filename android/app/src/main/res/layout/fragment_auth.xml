@@ -1,119 +1,209 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
     android:orientation="vertical"
-    android:padding="32dp"
-    android:background="@color/bg">
+    android:background="@color/white"
+    android:padding="24dp"
+    android:gravity="center">
 
-    <TextView
-        android:id="@+id/tv_title"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="300dp"
         android:layout_height="wrap_content"
-        android:text="欢迎回来"
-        android:textSize="26sp"
-        android:textColor="@color/text_primary"
-        android:textStyle="bold"
-        android:layout_marginBottom="4dp" />
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="橡胶进销存管理系统"
-        android:textSize="14sp"
-        android:textColor="@color/text_muted"
-        android:layout_marginBottom="32dp" />
+        <!-- Logo -->
+        <FrameLayout
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:background="@drawable/bg_circle_gradient"
+            android:layout_marginBottom="28dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="进"
+                    android:textColor="@color/white"
+                    android:textSize="30sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </FrameLayout>
 
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="2dp"
-        app:strokeWidth="0dp"
-        android:layout_marginBottom="16dp"
-        xmlns:app="http://schemas.android.com/apk/res-auto">
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="欢迎回来"
+            android:textColor="@color/text_primary"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
 
-        <LinearLayout
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="登录您的橡胶进销存账号"
+            android:textColor="@color/text_muted"
+            android:textSize="13sp"
+            android:layout_marginBottom="36dp" />
+
+        <!-- Phone Input -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="24dp">
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:hint="手机号"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/et_phone"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="phone" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:hint="密码"
-                app:endIconMode="password_toggle"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/et_password"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textPassword" />
-            </com.google.android.material.textfield.TextInputLayout>
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1.5dp"
+            app:strokeColor="@color/border_light"
+            android:layout_marginBottom="14dp">
 
             <LinearLayout
-                android:id="@+id/layout_register"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
+                android:layout_height="56dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="18dp">
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
+                <TextView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:hint="姓名（选填）"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                    android:text="📱"
+                    android:textSize="18sp"
+                    android:layout_marginEnd="12dp" />
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/et_name"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
-                </com.google.android.material.textfield.TextInputLayout>
+                <EditText
+                    android:id="@+id/et_phone"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:hint="手机号"
+                    android:inputType="phone"
+                    android:textSize="15sp"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="#c0c4cc"
+                    android:background="@null"
+                    android:maxLines="1" />
             </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-            <ProgressBar
-                android:id="@+id/progress"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:visibility="gone"
-                android:layout_marginBottom="8dp" />
+        <!-- Password Input -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1.5dp"
+            app:strokeColor="@color/border_light"
+            android:layout_marginBottom="8dp">
 
-            <Button
-                android:id="@+id/btn_submit"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:text="登录"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                style="@style/Widget.App.Button" />
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+                android:layout_height="56dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="18dp">
 
-    <TextView
-        android:id="@+id/tv_toggle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="没有账号？去注册"
-        android:textColor="@color/primary"
-        android:textSize="14sp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔒"
+                    android:textSize="18sp"
+                    android:layout_marginEnd="12dp" />
+
+                <EditText
+                    android:id="@+id/et_password"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:hint="密码"
+                    android:inputType="textPassword"
+                    android:textSize="15sp"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="#c0c4cc"
+                    android:background="@null"
+                    android:maxLines="1" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Register name field (hidden) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/layout_register"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1.5dp"
+            app:strokeColor="@color/border_light"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="18dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="👤"
+                    android:textSize="18sp"
+                    android:layout_marginEnd="12dp" />
+
+                <EditText
+                    android:id="@+id/et_name"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:hint="姓名（选填）"
+                    android:textSize="15sp"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="#c0c4cc"
+                    android:background="@null"
+                    android:maxLines="1" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Progress -->
+        <ProgressBar
+            android:id="@+id/progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:indeterminateTint="@color/primary"
+            android:layout_marginVertical="8dp" />
+
+        <!-- Login Button -->
+        <Button
+            android:id="@+id/btn_submit"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:text="登 录"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:background="@drawable/bg_btn_primary"
+            android:stateListAnimator="@null"
+            android:elevation="0dp"
+            android:layout_marginTop="16dp"
+            android:letterSpacing="0.2" />
+
+        <!-- Toggle -->
+        <TextView
+            android:id="@+id/tv_toggle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="没有账号？去注册"
+            android:textColor="@color/primary"
+            android:textSize="14sp"
+            android:layout_marginTop="24dp"
+            android:padding="8dp" />
+
+    </LinearLayout>
 </LinearLayout>

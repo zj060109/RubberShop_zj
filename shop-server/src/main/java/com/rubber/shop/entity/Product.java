@@ -25,6 +25,15 @@ public class Product {
     @TableField("spec_zj")
     private String spec_zj;
 
+    @TableField("brand_zj")
+    private String brand_zj;
+
+    @TableField("model_zj")
+    private String model_zj;
+
+    @TableField("material_zj")
+    private String material_zj;
+
     @TableField("description_zj")
     private String description_zj;
 

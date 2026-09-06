@@ -1,7 +1,11 @@
 <template>
   <div class="product-form-page">
     <div class="page-header">
+      <el-button text @click="$router.back()" class="back-btn">
+        <el-icon :size="20"><ArrowLeft /></el-icon>
+      </el-button>
       <h3 class="page-title">{{ isEdit ? '编辑商品' : '新增商品' }}</h3>
+      <span v-if="isEdit" class="header-badge">ID: {{ route.params.id }}</span>
     </div>
 
     <el-card class="form-card" shadow="never" v-loading="editingLoading">
@@ -14,13 +18,48 @@
             :props="{ label: 'name', value: 'id', children: 'children' }"
             placeholder="请选择商品分类" check-strictly class="form-select-260" @change="onCategoryChange" />
         </el-form-item>
-        <el-form-item label="尺寸规格" prop="spec">
-          <el-input v-model="form.spec" placeholder="请输入尺寸规格，如 80mm、M3、大号" maxlength="50" show-word-limit class="form-select-260">
-            <template #prepend>{{ form.categoryName || '请先选择分类' }}</template>
-          </el-input>
-        </el-form-item>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="品牌" prop="brand">
+              <el-input v-model="form.brand" placeholder="如 NAK、NOK、Parker" maxlength="50" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="型号" prop="model">
+              <el-input v-model="form.model" placeholder="如 TC-25-40-7、B3" maxlength="100" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="材质" prop="material">
+              <el-select v-model="form.material" placeholder="选择材质" clearable filterable allow-create class="form-full-width">
+                <el-option label="NBR（丁腈橡胶）" value="NBR" />
+                <el-option label="FKM（氟橡胶）" value="FKM" />
+                <el-option label="EPDM（三元乙丙）" value="EPDM" />
+                <el-option label="SIL（硅橡胶）" value="SIL" />
+                <el-option label="PU（聚氨酯）" value="PU" />
+                <el-option label="HNBR（氢化丁腈）" value="HNBR" />
+                <el-option label="CR（氯丁橡胶）" value="CR" />
+                <el-option label="PTFE（聚四氟乙烯）" value="PTFE" />
+                <el-option label="NR（天然橡胶）" value="NR" />
+                <el-option label="ACM（丙烯酸酯）" value="ACM" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="尺寸规格">
+              <el-input v-model="form.spec" placeholder="如 25x40x7、80x95x12">
+                <template #prepend>{{ form.categoryName || '选择分类' }}</template>
+              </el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
         <el-form-item label="商品描述">
-          <el-input v-model="form.description" type="textarea" :rows="3" placeholder="请输入商品描述信息" maxlength="500" show-word-limit />
+          <el-input v-model="form.description" type="textarea" :rows="3" placeholder="描述信息（选填）" maxlength="500" show-word-limit />
         </el-form-item>
 
         <h4 class="section-title">图片管理</h4>
@@ -77,10 +116,12 @@
         <el-divider />
 
         <el-form-item>
-          <el-button type="primary" class="btn-save" :loading="saving" @click="handleSave">
-            {{ isEdit ? '保存修改' : '立即创建' }}
-          </el-button>
-          <el-button @click="$router.back()">取消</el-button>
+          <div class="form-actions">
+            <el-button @click="$router.back()" class="btn-cancel">取消</el-button>
+            <el-button type="primary" class="btn-save" :loading="saving" @click="handleSave">
+              {{ isEdit ? '保存修改' : '立即创建' }}
+            </el-button>
+          </div>
         </el-form-item>
       </el-form>
     </el-card>
@@ -91,7 +132,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { UploadFilled, Delete } from '@element-plus/icons-vue'
+import { UploadFilled, Delete, ArrowLeft } from '@element-plus/icons-vue'
 import { getProductDetail, createProduct, updateProduct } from '../../api/product'
 import { getCategoryTree } from '../../api/category'
 import { uploadFile } from '../../api/upload'
@@ -109,6 +150,9 @@ const factories = ref([])
 const form = reactive({
   categoryName: '',
   categoryId: null,
+  brand: '',
+  model: '',
+  material: '',
   spec: '',
   description: '',
   images: [],
@@ -120,7 +164,8 @@ const form = reactive({
 
 const rules = {
   categoryId: [{ required: true, message: '请选择商品分类', trigger: 'change' }],
-  spec: [{ required: true, message: '请输入尺寸规格', trigger: 'blur' }],
+  brand: [{ required: true, message: '请输入品牌', trigger: 'blur' }],
+  model: [{ required: true, message: '请输入型号', trigger: 'blur' }],
   price: [{ required: true, message: '请输入价格', trigger: 'blur' }]
 }
 
@@ -159,6 +204,9 @@ const loadProduct = async (id) => {
     const res = await getProductDetail(id)
     const p = res.data
     form.categoryId = p.category_id_zj
+    form.brand = p.brand_zj || ''
+    form.model = p.model_zj || ''
+    form.material = p.material_zj || ''
     form.spec = p.spec_zj || ''
     form.description = p.description_zj || ''
     form.images = parseImages(p.images_zj)
@@ -197,7 +245,10 @@ const handleSave = async () => {
   try {
     const data = {
       categoryId: form.categoryId,
-      spec: form.spec,
+      brand: form.brand,
+      model: form.model,
+      material: form.material || null,
+      spec: form.spec || null,
       description: form.description,
       images: form.images,
       price: form.price,
@@ -230,40 +281,67 @@ onMounted(() => {
 
 <style scoped>
 .product-form-page {
-  padding: 24px;
-  background: #f8fafc;
+  padding: 32px 40px;
+  background: #fafafa;
   min-height: calc(100vh - 60px);
 }
 
 .page-header {
-  margin-bottom: 16px;
-}
-.page-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #303133;
-  margin: 0;
-}
-
-.form-card {
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-.form-card :deep(.el-card__body) {
-  padding: 24px 32px 16px;
-}
-
-.product-form :deep(.el-form-item) {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 20px;
 }
 
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #171717;
+  margin: 0;
+}
+
+.back-btn {
+  font-size: 18px;
+  color: #6b7280;
+  padding: 4px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+.back-btn:hover {
+  color: #5c6cf0;
+  background: #eef0ff;
+}
+
+.header-badge {
+  background: #eef0ff;
+  color: #5c6cf0;
+  padding: 2px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.form-card {
+  border-radius: 12px;
+  border: 1px solid #eaeaea;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.form-card :deep(.el-card__body) {
+  padding: 24px;
+}
+
+.product-form :deep(.el-form-item) {
+  margin-bottom: 22px;
+}
+
 .section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #6366f1;
-  margin: 0 0 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #eef2ff;
+  font-size: 15px;
+  font-weight: 700;
+  color: #171717;
+  margin: 28px 0 16px;
+}
+.section-title:first-child {
+  margin-top: 0;
 }
 
 .upload-section {
@@ -285,7 +363,7 @@ onMounted(() => {
   height: 88px;
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #e4e7ed;
+  border: 1px solid #eaeaea;
 }
 .gallery-img {
   width: 100%;
@@ -326,31 +404,38 @@ onMounted(() => {
   transition: border-color 0.2s;
 }
 .upload-dragger :deep(.el-upload-dragger:hover) {
-  border-color: #6366f1;
+  border-color: #5c6cf0;
 }
 .upload-dragger :deep(.el-upload__text) {
   font-size: 13px;
-  color: #606266;
+  color: #6b7280;
   margin-top: 8px;
 }
 .upload-dragger :deep(.el-upload__text em) {
-  color: #6366f1;
+  color: #5c6cf0;
   font-style: normal;
 }
 .upload-dragger :deep(.el-upload__tip) {
   margin-top: 6px;
   font-size: 12px;
-  color: #c0c4cc;
+  color: #9ca3af;
   text-align: center;
 }
 
 .btn-save {
-  --el-button-bg-color: #6366f1;
-  --el-button-border-color: #6366f1;
-  --el-button-hover-bg-color: #5558e6;
-  --el-button-hover-border-color: #5558e6;
-  --el-button-active-bg-color: #4f52d6;
-  --el-button-active-border-color: #4f52d6;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  --el-button-bg-color: #5c6cf0;
+  --el-button-border-color: #5c6cf0;
+  --el-button-hover-bg-color: #4f5de0;
+  --el-button-hover-border-color: #4f5de0;
+  --el-button-active-bg-color: #4f5de0;
+  --el-button-active-border-color: #4f5de0;
+}
+
+.btn-cancel {
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
 .form-full-width {
@@ -363,5 +448,13 @@ onMounted(() => {
 
 .form-select-260 {
   width: 260px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 8px;
+  width: 100%;
 }
 </style>
